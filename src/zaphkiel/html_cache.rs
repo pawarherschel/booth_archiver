@@ -40,7 +40,6 @@ impl HtmlCache {
 impl HtmlCache {
     pub async fn add(&self, url: Url, html: Html) {
         self.cache.write().await.insert(url, html);
-        self.miss().await;
         *self.accesses.write().await += 1;
         if *self.accesses.read().await % 100 == 0 {
             self.dump().await;
