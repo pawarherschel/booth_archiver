@@ -1,7 +1,6 @@
 use std::error::Error;
 
 use lazy_static::lazy_static;
-
 use path_absolutize::Absolutize;
 
 use booth_archiver::models::booth_scrapper::*;
@@ -12,7 +11,6 @@ use booth_archiver::time_it;
 lazy_static! {
     pub static ref CONFIG: Config = time_it!("loading config" => Config::get());
     pub static ref COOKIE: String = {
-        println!("cookie_file: {:?}", CONFIG.cookie_file.as_ref().unwrap());
         std::fs::read_to_string(CONFIG.cookie_file.as_ref().unwrap()).unwrap_or_else(|_| {
             panic!(
                 "expecting cookie to be in {}",
