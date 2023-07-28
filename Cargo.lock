@@ -146,8 +146,11 @@ dependencies = [
  "lazy_static",
  "reqwest",
  "scraper",
+ "serde",
+ "serde_json",
  "structopt",
  "tokio",
+ "url",
 ]
 
 [[package]]
@@ -1283,6 +1286,9 @@ name = "serde"
 version = "1.0.177"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "63ba2516aa6bf82e0b19ca8b50019d52df58455d3cf9bdaf6315225fdd0c560a"
+dependencies = [
+ "serde_derive",
+]
 
 [[package]]
 name = "serde_derive"
@@ -1661,6 +1667,7 @@ dependencies = [
  "form_urlencoded",
  "idna 0.4.0",
  "percent-encoding",
+ "serde",
 ]
 
 [[package]]
