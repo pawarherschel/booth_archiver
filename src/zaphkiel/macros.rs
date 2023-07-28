@@ -10,12 +10,12 @@
 macro_rules! time_it {
     ($comment:literal => $stmt:stmt) => {{
         use std::io::Write;
-        print!("{} ", $comment);
+        print!("{} => ", $comment);
         let _ = std::io::stdout().flush();
         let start = std::time::Instant::now();
         let result = { $stmt };
         let duration = start.elapsed();
-        println!(" => {:?}", duration);
+        println!("{:?}", duration);
         result
     }};
 }

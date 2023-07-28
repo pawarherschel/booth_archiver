@@ -8,10 +8,7 @@ use booth_archiver::models::web_scrapper::WebScraper;
 use booth_archiver::time_it;
 
 lazy_static! {
-    pub static ref CONFIG: Config = {
-        println!("Config::get()");
-        Config::get()
-    };
+    pub static ref CONFIG: Config = time_it!("loading config" => Config::get());
     pub static ref COOKIE: String = {
         println!("cookie_file: {:?}", CONFIG.cookie_file.as_ref().unwrap());
         std::fs::read_to_string(CONFIG.cookie_file.as_ref().unwrap()).unwrap()
@@ -32,12 +29,13 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     println!("number of items = {}", all_item_numbers.len());
 
-    let all_items = time_it!("getting all pages" =>
-        get_items(&client, all_item_numbers).await?);
+    let all_items = get_items(&client, all_item_numbers).await?;
 
-    client.dump_cache().await;
+    time_it!("dumping" => client.dump_cache().await);
 
     println!("number of items: {:?}", all_items.len());
-    println!("{:#?}", client.get_cache_stats().await);
+
+    println!("{}", client.get_cache_stats().await);
+
     Ok(())
 }

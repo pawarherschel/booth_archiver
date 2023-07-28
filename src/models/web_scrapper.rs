@@ -1,6 +1,4 @@
-use std::fmt::Write;
-
-use indicatif::{ProgressBar, ProgressIterator, ProgressState, ProgressStyle};
+use indicatif::{ProgressBar, ProgressStyle};
 use reqwest::{Client, Url};
 use scraper::Html;
 
@@ -84,20 +82,25 @@ impl WebScraper {
         let mut htmls = Vec::new();
 
         let pb = ProgressBar::new(urls.len() as u64);
-        pb.set_style(
-            ProgressStyle::with_template(
-                "{spinner:.green} [{elapsed_precise}] [{wide_bar:.cyan/blue}] {bytes}/{total_bytes} ({eta})"
-            )
-                .unwrap()
-                .with_key("eta", |state: &ProgressState, w: &mut dyn Write| write!(w, "{:.1}s", state.eta().as_secs_f64()).unwrap())
-                .progress_chars("#>-")
-        );
+
+        let pb_style = ProgressStyle::default_bar()
+            .template(
+                "{spinner:.green} [{elapsed_precise}] [{wide_bar:.cyan/blue}] {pos}/{len} ({msg})",
+            )?
+            .progress_chars("#>-");
+        pb.set_style(pb_style);
+
         pb.tick();
 
-        for url in urls.iter().progress_with(pb) {
+        for (i, url) in urls.iter().enumerate() {
             let html = self.get_one(url.clone()).await?;
             htmls.push(html);
+
+            pb.set_message(format!("{} items downloaded", i + 1));
+            pb.inc(1);
         }
+
+        pb.finish_with_message("All items downloaded!");
 
         Ok(htmls)
     }

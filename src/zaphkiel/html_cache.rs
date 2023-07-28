@@ -68,12 +68,11 @@ impl HtmlCache {
     pub async fn pump(&self) {
         println!("pumping");
         let cache =
-            time_it!("reading from cache file" => fs::read_to_string("cache.json").unwrap());
+            time_it!("\treading from cache file" => fs::read_to_string("cache.json").unwrap());
 
-        let cache: HashMap<String, String> =
-            time_it!("converting to hashmap from string" => serde_json::from_str(&cache).unwrap());
+        let cache: HashMap<String, String> = time_it!("\tconverting to hashmap from string" => serde_json::from_str(&cache).unwrap());
 
-        let cache: HashMap<Url, Html> = time_it!("converting to in-memory representation of the cache"
+        let cache: HashMap<Url, Html> = time_it!("\tconverting to in-memory representation of the cache"
             => cache
             .into_iter()
             .map(|(k, v)| (Url::parse(&k).unwrap(), Html::parse_document(&v)))
@@ -84,20 +83,16 @@ impl HtmlCache {
         println!("pumped");
     }
     pub async fn dump(&self) {
-        println!("dumping");
-        let serialize_friendly_map: HashMap<String, String> = time_it!("converting to serialize-friendly map" => {
+        let serialize_friendly_map: HashMap<String, String> = {
             let cache = self.cache.read().await.deref().clone();
             cache
                 .into_iter()
                 .map(|(k, v)| (k.to_string(), v.html()))
                 .collect()
-        });
+        };
 
-        let cache = time_it!("converting to string" => serde_json::to_string(&serialize_friendly_map).unwrap());
+        let cache = serde_json::to_string(&serialize_friendly_map).unwrap();
 
-        time_it!("writing to cache file" =>
-            fs::write("cache.json", cache).unwrap()
-        );
-        println!("dumped");
+        fs::write("cache.json", cache).unwrap()
     }
 }
