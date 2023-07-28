@@ -1,9 +1,6 @@
-use crate::zaphkiel::html_cache::HtmlCache;
-use crate::zaphkiel::html_cache_stats::HtmlCacheStats;
+use crate::zaphkiel::html_cache::{HtmlCache, HtmlCacheStats};
 use reqwest::{Client, Url};
 use scraper::Html;
-use tokio::io::AsyncReadExt;
-use tokio::task;
 
 #[derive(Debug)]
 #[allow(dead_code)]
@@ -32,12 +29,19 @@ impl WebScraper {
 }
 
 impl WebScraper {
+    pub async fn get_cache_stats(&self) -> String {
+        let stats = HtmlCacheStats {
+            ..*self.cache.stats.read().await
+        };
+
+        format!("{:#?}", stats)
+    }
+
     pub async fn get_one(&self, url: &str) -> Result<Html, Box<dyn std::error::Error>> {
         let url = Url::parse(url)?;
 
-        if let Some(html) = self.cache.read().await.get(&url) {
-            self.stats.write().await.cache_hits += 1;
-            return Ok(html.clone());
+        if let Some(html) = self.cache.get(&url).await {
+            return Ok(html);
         }
 
         let res = self
@@ -49,7 +53,7 @@ impl WebScraper {
 
         let html = Html::parse_document(&res.text().await?);
 
-        self.add_to_cache(url.clone(), html.clone());
+        self.cache.add(url, html.clone()).await;
 
         Ok(html)
     }

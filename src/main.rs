@@ -40,6 +40,25 @@ async fn main() -> Result<(), Box<dyn Error>> {
             .inner_html()
     );
 
+    let many = time_it!("get many pages [google.com, youtube.com, reddit.com]"
+                => client.get_many(&["https://google.com", "https://youtube.com", "https://rust-lang.org"]).await)?;
+
+    for one in many {
+        println!(
+            "title: {}",
+            one.select(&Selector::parse("title").unwrap())
+                .next()
+                .unwrap()
+                .inner_html()
+                .trim()
+        );
+    }
+
+    let _ = time_it!("get many cached pages [google.com, youtube.com, reddit.com]"
+                => client.get_many(&["https://google.com", "https://youtube.com", "https://rust-lang.org"]).await)?;
+
+    println!("cache stats: {}", client.get_cache_stats().await);
+
     Ok::<(), Box<dyn Error>>(())
 }
 
