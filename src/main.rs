@@ -5,6 +5,7 @@ use lazy_static::lazy_static;
 use booth_archiver::models::booth_scrapper::*;
 use booth_archiver::models::config::Config;
 use booth_archiver::models::web_scrapper::WebScraper;
+use booth_archiver::time_it;
 
 lazy_static! {
     pub static ref CONFIG: Config = {
@@ -29,16 +30,14 @@ async fn main() -> Result<(), Box<dyn Error>> {
         all_item_numbers.extend(item_numbers);
     }
 
-    println!(
-        "all_item_numbers: {:?}\nTotal = {}",
-        all_item_numbers,
-        all_item_numbers.len()
-    );
+    println!("number of items = {}", all_item_numbers.len());
 
-    // let all_items = time_it!("getting all pages" =>
-    //     get_items(&client, all_item_numbers).await?);
-    //
-    // println!("all_items: {:?}", all_items.len());
+    let all_items = time_it!("getting all pages" =>
+        get_items(&client, all_item_numbers).await?);
 
+    client.dump_cache().await;
+
+    println!("number of items: {:?}", all_items.len());
+    println!("{:#?}", client.get_cache_stats().await);
     Ok(())
 }

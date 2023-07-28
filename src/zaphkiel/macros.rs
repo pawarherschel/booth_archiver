@@ -9,10 +9,11 @@
 /// ```
 macro_rules! time_it {
     ($comment:literal => $stmt:stmt) => {{
+        print!("{}", $comment);
         let start = std::time::Instant::now();
         let result = { $stmt };
         let duration = start.elapsed();
-        println!("{} => {:?}", $comment, duration);
+        println!(" => {:?}", duration);
         result
     }};
 }

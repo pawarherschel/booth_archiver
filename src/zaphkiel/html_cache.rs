@@ -8,6 +8,8 @@ use scraper::Html;
 use serde::{Deserialize, Serialize};
 use tokio::sync::RwLock;
 
+use crate::time_it;
+
 #[derive(Debug, Default)]
 #[allow(dead_code)]
 pub struct HtmlCache {
@@ -64,28 +66,38 @@ impl HtmlCache {
     }
 
     pub async fn pump(&self) {
-        let cache = fs::read_to_string("cache.json").unwrap();
+        println!("pumping");
+        let cache =
+            time_it!("reading from cache file" => fs::read_to_string("cache.json").unwrap());
 
-        let cache: HashMap<String, String> = serde_json::from_str(&cache).unwrap();
+        let cache: HashMap<String, String> =
+            time_it!("converting to hashmap from string" => serde_json::from_str(&cache).unwrap());
 
-        let cache: HashMap<Url, Html> = cache
+        let cache: HashMap<Url, Html> = time_it!("converting to in-memory representation of the cache"
+            => cache
             .into_iter()
             .map(|(k, v)| (Url::parse(&k).unwrap(), Html::parse_document(&v)))
-            .collect();
+            .collect()
+        );
 
         *self.cache.write().await = cache;
+        println!("pumped");
     }
     pub async fn dump(&self) {
-        let serialize_friendly_map: HashMap<String, String> = {
+        println!("dumping");
+        let serialize_friendly_map: HashMap<String, String> = time_it!("converting to serialize-friendly map" => {
             let cache = self.cache.read().await.deref().clone();
             cache
                 .into_iter()
                 .map(|(k, v)| (k.to_string(), v.html()))
                 .collect()
-        };
+        });
 
-        let cache = serde_json::to_string(&serialize_friendly_map).unwrap();
+        let cache = time_it!("converting to string" => serde_json::to_string(&serialize_friendly_map).unwrap());
 
-        fs::write("cache.json", cache).unwrap();
+        time_it!("writing to cache file" =>
+            fs::write("cache.json", cache).unwrap()
+        );
+        println!("dumped");
     }
 }

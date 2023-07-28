@@ -9,7 +9,7 @@ use crate::zaphkiel::html_cache::{HtmlCache, HtmlCacheStats};
 #[derive(Debug)]
 #[allow(dead_code)]
 pub struct WebScraper {
-    pub client: Client,
+    client: Client,
     cache: HtmlCache,
     cookie: String,
     user_agent: String,
