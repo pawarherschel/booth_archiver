@@ -6,8 +6,9 @@ use scraper::Html;
 #[allow(dead_code)]
 pub struct WebScraper {
     pub client: Client,
-    cookie: String,
     cache: HtmlCache,
+    cookie: String,
+    user_agent: String,
 }
 
 impl WebScraper {
@@ -26,10 +27,17 @@ impl WebScraper {
 
         let cache = HtmlCache::new().await;
 
+        let user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) \
+            AppleWebKit/537.36 (KHTML, like Gecko) \
+            Chrome/108.0.0.0 \
+            Safari/537.36"
+            .to_string();
+
         Self {
             client,
             cookie,
             cache,
+            user_agent,
         }
     }
 }
@@ -43,8 +51,8 @@ impl WebScraper {
         format!("{:#?}", stats)
     }
 
-    pub async fn get_one(&self, url: &str) -> Result<Html, Box<dyn std::error::Error>> {
-        let url = Url::parse(url)?;
+    pub async fn get_one(&self, url: String) -> Result<Html, Box<dyn std::error::Error>> {
+        let url = Url::parse(url.as_str())?;
 
         if let Some(html) = self.cache.get(&url).await {
             return Ok(html);
@@ -54,6 +62,7 @@ impl WebScraper {
             .client
             .get(url.clone())
             .header("Cookie", self.cookie.clone())
+            .header("User-Agent", self.user_agent.clone())
             .send()
             .await?;
 
@@ -64,7 +73,10 @@ impl WebScraper {
         Ok(html)
     }
 
-    pub async fn get_many(&self, urls: &[&str]) -> Result<Vec<Html>, Box<dyn std::error::Error>> {
+    pub async fn get_many(
+        &self,
+        urls: Vec<String>,
+    ) -> Result<Vec<Html>, Box<dyn std::error::Error>> {
         let mut htmls = Vec::new();
 
         for url in urls {
