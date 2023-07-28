@@ -1,6 +1,7 @@
-use crate::zaphkiel::html_cache::{HtmlCache, HtmlCacheStats};
 use reqwest::{Client, Url};
 use scraper::Html;
+
+use crate::zaphkiel::html_cache::{HtmlCache, HtmlCacheStats};
 
 #[derive(Debug)]
 #[allow(dead_code)]

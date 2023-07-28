@@ -1,5 +1,6 @@
-use clap::Parser;
 use std::path::PathBuf;
+
+use clap::Parser;
 
 /// Simple program to greet a person
 #[derive(Parser, Debug)]

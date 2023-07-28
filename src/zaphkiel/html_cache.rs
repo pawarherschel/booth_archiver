@@ -1,10 +1,11 @@
-use reqwest::Url;
-use scraper::Html;
-use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
 use std::ops::Deref;
 use std::sync::Arc;
+
+use reqwest::Url;
+use scraper::Html;
+use serde::{Deserialize, Serialize};
 use tokio::sync::RwLock;
 
 #[derive(Debug, Default)]

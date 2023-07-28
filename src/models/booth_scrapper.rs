@@ -1,8 +1,9 @@
+use std::error::Error;
+
+use scraper::{Html, Selector};
+
 use crate::models::web_scrapper::WebScraper;
 use crate::zaphkiel::static_strs::*;
-use scraper::{Html, Selector};
-use std::error::Error;
-use std::process::id;
 
 pub async fn get_last_page_number(client: &WebScraper) -> Result<u32, Box<dyn Error>> {
     //<a
@@ -36,8 +37,6 @@ pub async fn get_all_wishlist_pages(client: &WebScraper) -> Result<Vec<Html>, Bo
 }
 
 pub async fn get_all_item_numbers_on_page(page: &Html) -> Result<Vec<u32>, Box<dyn Error>> {
-    // selector = body > div.page-wrap > main > div.manage-page-body > div > div > ul
-
     let selector =
         Selector::parse("body > div.page-wrap > main > div.manage-page-body > div > div > ul")
             .unwrap();

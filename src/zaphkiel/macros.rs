@@ -8,7 +8,7 @@
 /// let result = time_it!("sleep 1 second" => std::thread::sleep(std::time::Duration::from_secs(1)));
 /// ```
 macro_rules! time_it {
-    ($comment:expr => $stmt:expr) => {{
+    ($comment:literal => $stmt:stmt) => {{
         let start = std::time::Instant::now();
         let result = { $stmt };
         let duration = start.elapsed();
