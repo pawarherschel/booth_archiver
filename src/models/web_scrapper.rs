@@ -1,3 +1,6 @@
+use std::fmt::Write;
+
+use indicatif::{ProgressBar, ProgressIterator, ProgressState, ProgressStyle};
 use reqwest::{Client, Url};
 use scraper::Html;
 
@@ -80,8 +83,19 @@ impl WebScraper {
     ) -> Result<Vec<Html>, Box<dyn std::error::Error>> {
         let mut htmls = Vec::new();
 
-        for url in urls {
-            let html = self.get_one(url).await?;
+        let pb = ProgressBar::new(urls.len() as u64);
+        pb.set_style(
+            ProgressStyle::with_template(
+                "{spinner:.green} [{elapsed_precise}] [{wide_bar:.cyan/blue}] {bytes}/{total_bytes} ({eta})"
+            )
+                .unwrap()
+                .with_key("eta", |state: &ProgressState, w: &mut dyn Write| write!(w, "{:.1}s", state.eta().as_secs_f64()).unwrap())
+                .progress_chars("#>-")
+        );
+        pb.tick();
+
+        for url in urls.iter().progress_with(pb) {
+            let html = self.get_one(url.clone()).await?;
             htmls.push(html);
         }
 

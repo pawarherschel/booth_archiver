@@ -61,3 +61,18 @@ pub async fn get_all_item_numbers_on_page(page: &Html) -> Result<Vec<u32>, Box<d
 
     Ok(items)
 }
+
+pub async fn get_item(client: &WebScraper, id: u32) -> Result<Html, Box<dyn Error>> {
+    let url = format!("{}{}", BASE_BOOTH_ITEM_URL, id);
+    let document = client.get_one(url).await?;
+    Ok(document)
+}
+
+pub async fn get_items(client: &WebScraper, ids: Vec<u32>) -> Result<Vec<Html>, Box<dyn Error>> {
+    let urls = ids
+        .iter()
+        .map(|id| format!("{}{}", BASE_BOOTH_ITEM_URL, id))
+        .collect::<Vec<_>>();
+    let documents = client.get_many(urls).await?;
+    Ok(documents)
+}

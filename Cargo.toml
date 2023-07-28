@@ -7,6 +7,7 @@ edition = "2021"
 
 [dependencies]
 clap = { version = "4.3.19", features = ["derive"] }
+indicatif = { version = "0.17.5", features = ["tokio", "improved_unicode"] }
 itertools = "0.11.0"
 lazy_static = "1.4.0"
 reqwest = { version = "0.11.18", features = ["cookies", "json"] }

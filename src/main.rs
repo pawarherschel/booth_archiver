@@ -35,5 +35,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
         all_item_numbers.len()
     );
 
+    // let all_items = time_it!("getting all pages" =>
+    //     get_items(&client, all_item_numbers).await?);
+    //
+    // println!("all_items: {:?}", all_items.len());
+
     Ok(())
 }
