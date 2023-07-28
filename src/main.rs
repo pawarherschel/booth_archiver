@@ -29,5 +29,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
         all_item_numbers.extend(item_numbers);
     }
 
+    println!(
+        "all_item_numbers: {:?}\nTotal = {}",
+        all_item_numbers,
+        all_item_numbers.len()
+    );
+
     Ok(())
 }
