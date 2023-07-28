@@ -11,14 +11,20 @@ pub struct WebScraper {
 }
 
 impl WebScraper {
-    pub fn new(cookie: String, adult: bool) -> Self {
+    pub async fn dump_cache(&self) {
+        self.cache.dump().await;
+    }
+}
+
+impl WebScraper {
+    pub async fn new(cookie: String, adult: bool) -> Self {
         let client = Client::builder().cookie_store(true).build().unwrap();
 
         let session_cookie = format!("_plaza_session_nktz7u={}; Secure", cookie);
         let adult_cookie = format!("adult={}; Secure", if adult { "t" } else { "f" });
         let cookie = format!("{}; {}", session_cookie, adult_cookie);
 
-        let cache = HtmlCache::new();
+        let cache = HtmlCache::new().await;
 
         Self {
             client,

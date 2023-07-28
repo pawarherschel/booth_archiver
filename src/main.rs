@@ -1,5 +1,5 @@
-use booth_archiver::models::booth_scrapper::WebScraper;
 use booth_archiver::models::config::Config;
+use booth_archiver::models::web_scrapper::WebScraper;
 use booth_archiver::time_it;
 use clap::Parser;
 use lazy_static::lazy_static;
@@ -27,7 +27,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     println!("cookie: {}", COOKIE.as_str());
 
-    let client = WebScraper::new(COOKIE.clone(), true);
+    let client = WebScraper::new(COOKIE.clone(), true).await;
 
     let result = time_it!("get \"「ダリア」 Sunkiss'd Anubis Makeup Texture Set - VRChat\"" 
                 => client.get_one("https://booth.pm/en/items/4954841").await)?;
@@ -40,8 +40,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
             .inner_html()
     );
 
-    let many = time_it!("get many pages [google.com, youtube.com, reddit.com]"
-                => client.get_many(&["https://google.com", "https://youtube.com", "https://rust-lang.org"]).await)?;
+    let many = time_it!("get many pages [google.com, youtube.com, reddit.com]" => 
+        client.get_many(&["https://google.com", "https://youtube.com", "https://rust-lang.org"])
+        .await)?;
 
     for one in many {
         println!(
@@ -54,10 +55,13 @@ async fn main() -> Result<(), Box<dyn Error>> {
         );
     }
 
-    let _ = time_it!("get many cached pages [google.com, youtube.com, reddit.com]"
-                => client.get_many(&["https://google.com", "https://youtube.com", "https://rust-lang.org"]).await)?;
+    let _ = time_it!("get many cached pages [google.com, youtube.com, reddit.com]" => 
+        client.get_many(&["https://google.com", "https://youtube.com", "https://rust-lang.org"])
+        .await)?;
 
     println!("cache stats: {}", client.get_cache_stats().await);
+
+    client.dump_cache().await;
 
     Ok::<(), Box<dyn Error>>(())
 }

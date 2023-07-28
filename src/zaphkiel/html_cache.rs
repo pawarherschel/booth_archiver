@@ -12,6 +12,7 @@ use tokio::sync::RwLock;
 pub struct HtmlCache {
     pub cache: Arc<RwLock<HashMap<Url, Html>>>,
     pub stats: Arc<RwLock<HtmlCacheStats>>,
+    accesses: Arc<RwLock<u64>>,
 }
 
 #[derive(Debug, Default, Serialize, Deserialize, PartialEq, Eq, Hash, Clone)]
@@ -22,29 +23,14 @@ pub struct HtmlCacheStats {
 }
 
 impl HtmlCache {
-    pub fn new() -> Self {
-        match (
-            fs::read_to_string("cache.json"),
-            fs::read_to_string("stats.json"),
-        ) {
-            (Ok(cache), Ok(stats)) => {
-                let cache: HashMap<String, String> = serde_json::from_str(&cache).unwrap();
-                let stats: HtmlCacheStats = serde_json::from_str(&stats).unwrap();
+    pub async fn new() -> Self {
+        let default = Self::default();
 
-                let cache: HashMap<Url, Html> = cache
-                    .into_iter()
-                    .map(|(k, v)| (Url::parse(&k).unwrap(), Html::parse_document(&v)))
-                    .collect();
-
-                Self {
-                    cache: Arc::new(RwLock::new(cache)),
-                    stats: Arc::new(RwLock::new(stats)),
-                }
-            }
-            _ => Self::default(),
+        if fs::read_to_string("cache.json").is_ok() {
+            default.pump().await;
         }
 
-        Self::default()
+        default
     }
 }
 
@@ -52,6 +38,10 @@ impl HtmlCache {
     pub async fn add(&self, url: Url, html: Html) {
         self.cache.write().await.insert(url, html);
         self.miss().await;
+        *self.accesses.write().await += 1;
+        if *self.accesses.read().await % 100 == 0 {
+            self.dump().await;
+        }
     }
     pub async fn get(&self, url: &Url) -> Option<Html> {
         if let Some(html) = self.cache.read().await.get(url) {
@@ -74,10 +64,8 @@ impl HtmlCache {
 
     pub async fn pump(&self) {
         let cache = fs::read_to_string("cache.json").unwrap();
-        let stats = fs::read_to_string("stats.json").unwrap();
 
         let cache: HashMap<String, String> = serde_json::from_str(&cache).unwrap();
-        let stats: HtmlCacheStats = serde_json::from_str(&stats).unwrap();
 
         let cache: HashMap<Url, Html> = cache
             .into_iter()
@@ -85,7 +73,6 @@ impl HtmlCache {
             .collect();
 
         *self.cache.write().await = cache;
-        *self.stats.write().await = stats;
     }
     pub async fn dump(&self) {
         let serialize_friendly_map: HashMap<String, String> = {
@@ -96,12 +83,8 @@ impl HtmlCache {
                 .collect()
         };
 
-        let stats = self.stats.read().await.deref().clone();
-
         let cache = serde_json::to_string(&serialize_friendly_map).unwrap();
-        let stats = serde_json::to_string(&stats).unwrap();
 
         fs::write("cache.json", cache).unwrap();
-        fs::write("stats.json", stats).unwrap();
     }
 }
