@@ -2,6 +2,7 @@ use std::error::Error;
 
 use lazy_static::lazy_static;
 use path_absolutize::Absolutize;
+use scraper::Html;
 
 use booth_archiver::models::booth_scrapper::*;
 use booth_archiver::models::config::Config;
@@ -42,27 +43,27 @@ lazy_static! {
 
 // the reason we cannot parallelize this is because Document is not Send,
 // and we cannot send it to another thread
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn Error>> {
-    let client = WebScraper::new(COOKIE.to_string(), true).await;
+fn main() -> Result<(), Box<dyn Error>> {
+    let client = WebScraper::new(COOKIE.to_string(), true);
 
-    let wishlist_pages = get_all_wishlist_pages(&client).await?;
+    let wishlist_pages = get_all_wishlist_pages(&client)?;
 
     let mut all_item_numbers = Vec::new();
     for page in wishlist_pages {
-        let item_numbers = get_all_item_numbers_on_page(&page).await?;
+        let page = Html::parse_document(&page);
+        let item_numbers = get_all_item_numbers_on_page(&page)?;
         all_item_numbers.extend(item_numbers);
     }
 
     println!("number of items = {}", all_item_numbers.len());
 
-    let all_items = get_items(&client, all_item_numbers).await?;
+    let all_items = get_items(&client, all_item_numbers)?;
 
-    time_it!("dumping" => client.dump_cache().await);
+    time_it!("dumping" => client.dump_cache());
 
     println!("number of items: {:?}", all_items.len());
 
-    println!("{}", client.get_cache_stats().await);
+    println!("{}", client.get_cache_stats());
 
     Ok(())
 }

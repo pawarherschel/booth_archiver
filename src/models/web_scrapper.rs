@@ -1,26 +1,27 @@
-use indicatif::{ProgressBar, ProgressStyle};
-use reqwest::{Client, Url};
-use scraper::Html;
+use std::cell::RefCell;
 
-use crate::zaphkiel::html_cache::{HtmlCache, HtmlCacheStats};
+use indicatif::{ProgressBar, ProgressStyle};
+use reqwest::blocking::Client;
+
+use crate::zaphkiel::cache::{Cache, HtmlCacheStats};
 
 #[derive(Debug)]
 #[allow(dead_code)]
 pub struct WebScraper {
     client: Client,
-    cache: HtmlCache,
+    cache: RefCell<Cache>,
     cookie: String,
     user_agent: String,
 }
 
 impl WebScraper {
-    pub async fn dump_cache(&self) {
-        self.cache.dump().await;
+    pub fn dump_cache(&self) {
+        self.cache.borrow().dump();
     }
 }
 
 impl WebScraper {
-    pub async fn new(cookie: String, adult: bool) -> Self {
+    pub fn new(cookie: String, adult: bool) -> Self {
         let client = Client::builder()
             .cookie_store(true)
             .build()
@@ -30,7 +31,7 @@ impl WebScraper {
         let adult_cookie = format!("adult={}; Secure", if adult { "t" } else { "f" });
         let cookie = format!("{}; {}", session_cookie, adult_cookie);
 
-        let cache = HtmlCache::new().await;
+        let cache = RefCell::new(Cache::new());
 
         let user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) \
             AppleWebKit/537.36 (KHTML, like Gecko) \
@@ -48,18 +49,16 @@ impl WebScraper {
 }
 
 impl WebScraper {
-    pub async fn get_cache_stats(&self) -> String {
+    pub fn get_cache_stats(&self) -> String {
         let stats = HtmlCacheStats {
-            ..*self.cache.stats.read().await
+            ..self.cache.borrow().stats.borrow().clone()
         };
 
         format!("{:#?}", stats)
     }
 
-    pub async fn get_one(&self, url: String) -> Result<Html, Box<dyn std::error::Error>> {
-        let url = Url::parse(url.as_str())?;
-
-        if let Some(html) = self.cache.get(&url).await {
+    pub fn get_one(&self, url: String) -> Result<String, Box<dyn std::error::Error>> {
+        if let Some(html) = self.cache.borrow().get(&url) {
             return Ok(html);
         }
 
@@ -68,20 +67,15 @@ impl WebScraper {
             .get(url.clone())
             .header("Cookie", self.cookie.clone())
             .header("User-Agent", self.user_agent.clone())
-            .send()
-            .await?;
+            .send()?
+            .text()?;
 
-        let html = Html::parse_document(&res.text().await?);
+        self.cache.borrow_mut().add(url, res.clone());
 
-        self.cache.add(url, html.clone()).await;
-
-        Ok(html)
+        Ok(res)
     }
 
-    pub async fn get_many(
-        &self,
-        urls: Vec<String>,
-    ) -> Result<Vec<Html>, Box<dyn std::error::Error>> {
+    pub fn get_many(&self, urls: Vec<String>) -> Result<Vec<String>, Box<dyn std::error::Error>> {
         let mut htmls = Vec::new();
 
         let pb = ProgressBar::new(urls.len() as u64);
@@ -96,7 +90,7 @@ impl WebScraper {
         pb.tick();
 
         for (i, url) in urls.iter().enumerate() {
-            let html = self.get_one(url.clone()).await?;
+            let html = self.get_one(url.clone())?;
             htmls.push(html);
 
             pb.set_message(format!("{} items downloaded", i + 1));

@@ -5,7 +5,7 @@ pub mod models {
 }
 
 pub mod zaphkiel {
-    pub mod html_cache;
+    pub mod cache;
     pub mod macros;
     pub mod static_strs;
 }

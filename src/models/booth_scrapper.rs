@@ -5,8 +5,9 @@ use scraper::{Html, Selector};
 use crate::models::web_scrapper::WebScraper;
 use crate::zaphkiel::static_strs::*;
 
-pub async fn get_last_page_number(client: &WebScraper) -> Result<u32, Box<dyn Error>> {
-    let document = client.get_one(BASE_BOOTH_WISHLIST_URL.to_string()).await?;
+pub fn get_last_page_number(client: &WebScraper) -> Result<u32, Box<dyn Error>> {
+    let document = client.get_one(BASE_BOOTH_WISHLIST_URL.to_string())?;
+    let document = Html::parse_document(&document);
     let selector = Selector::parse("a.nav-item.last-page")?;
     let last_page = document.select(&selector).last().expect(
         "failed to get last page, \
@@ -22,19 +23,19 @@ pub async fn get_last_page_number(client: &WebScraper) -> Result<u32, Box<dyn Er
     Ok(page)
 }
 
-pub async fn get_all_wishlist_pages(client: &WebScraper) -> Result<Vec<Html>, Box<dyn Error>> {
-    let last_page = get_last_page_number(client).await?;
+pub fn get_all_wishlist_pages(client: &WebScraper) -> Result<Vec<String>, Box<dyn Error>> {
+    let last_page = get_last_page_number(client)?;
 
     let urls = (1..=last_page)
         .map(|page_number| format!("{}{}", BASE_BOOTH_WISHLIST_URL, page_number))
         .collect::<Vec<_>>();
 
-    let pages = client.get_many(urls).await?;
+    let pages = client.get_many(urls)?;
 
     Ok(pages)
 }
 
-pub async fn get_all_item_numbers_on_page(page: &Html) -> Result<Vec<u32>, Box<dyn Error>> {
+pub fn get_all_item_numbers_on_page(page: &Html) -> Result<Vec<u32>, Box<dyn Error>> {
     let selector =
         Selector::parse("body > div.page-wrap > main > div.manage-page-body > div > div > ul")?;
 
@@ -64,17 +65,17 @@ pub async fn get_all_item_numbers_on_page(page: &Html) -> Result<Vec<u32>, Box<d
     Ok(items)
 }
 
-pub async fn get_item(client: &WebScraper, id: u32) -> Result<Html, Box<dyn Error>> {
+pub fn get_item(client: &WebScraper, id: u32) -> Result<String, Box<dyn Error>> {
     let url = format!("{}{}", BASE_BOOTH_ITEM_URL, id);
-    let document = client.get_one(url).await?;
+    let document = client.get_one(url)?;
     Ok(document)
 }
 
-pub async fn get_items(client: &WebScraper, ids: Vec<u32>) -> Result<Vec<Html>, Box<dyn Error>> {
+pub fn get_items(client: &WebScraper, ids: Vec<u32>) -> Result<Vec<String>, Box<dyn Error>> {
     let urls = ids
         .iter()
         .map(|id| format!("{}{}", BASE_BOOTH_ITEM_URL, id))
         .collect::<Vec<_>>();
-    let documents = client.get_many(urls).await?;
+    let documents = client.get_many(urls)?;
     Ok(documents)
 }

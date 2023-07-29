@@ -7,14 +7,11 @@ edition = "2021"
 
 [dependencies]
 clap = { version = "4.3.19", features = ["derive"] }
-indicatif = { version = "0.17.5", features = ["tokio", "improved_unicode"] }
-itertools = "0.11.0"
+indicatif = { version = "0.17.5", features = ["improved_unicode"] }
 lazy_static = "1.4.0"
 path-absolutize = "3.1.0"
-reqwest = { version = "0.11.18", features = ["cookies", "json"] }
+reqwest = { version = "0.11.18", features = ["cookies", "json", "blocking"] }
 scraper = "0.17.1"
 serde = { version = "1.0.177", features = ["derive"] }
 serde_json = "1.0.104"
 structopt = "0.3.26"
-tokio = { version = "1.29.1", features = ["full"] }
-url = { version = "2", features = ["serde"] }
