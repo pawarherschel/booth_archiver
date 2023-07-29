@@ -1,18 +1,19 @@
-use std::cell::RefCell;
 use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
+use std::sync::Arc;
+use std::sync::RwLock;
 
 use path_absolutize::Absolutize;
 use serde::{Deserialize, Serialize};
 
 use crate::time_it;
 
-#[derive(Debug, Default, Serialize, Deserialize, PartialEq, Eq, Clone)]
+#[derive(Debug, Default, Clone)]
 #[allow(dead_code)]
 pub struct Cache {
     pub cache: HashMap<String, String>,
-    pub stats: RefCell<HtmlCacheStats>,
+    pub stats: Arc<RwLock<HtmlCacheStats>>,
     accesses: u64,
     path_to_cache: PathBuf,
 }
@@ -66,10 +67,10 @@ impl Cache {
 
 impl Cache {
     pub fn hit(&self) {
-        self.stats.borrow_mut().cache_hits += 1;
+        self.stats.clone().write().unwrap().cache_hits += 1;
     }
     pub fn miss(&self) {
-        self.stats.borrow_mut().cache_misses += 1;
+        self.stats.clone().write().unwrap().cache_misses += 1;
     }
 }
 

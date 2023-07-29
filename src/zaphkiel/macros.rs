@@ -18,4 +18,12 @@ macro_rules! time_it {
         println!("{:?}", duration);
         result
     }};
+    (at once | $comment:literal => $stmt:stmt) => {{
+        use std::io::Write;
+        let start = std::time::Instant::now();
+        let result = { $stmt };
+        let duration = start.elapsed();
+        println!("{} => {:?}", $comment, duration);
+        result
+    }};
 }

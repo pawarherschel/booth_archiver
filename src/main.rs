@@ -44,26 +44,41 @@ lazy_static! {
 // the reason we cannot parallelize this is because Document is not Send,
 // and we cannot send it to another thread
 fn main() -> Result<(), Box<dyn Error>> {
-    let client = WebScraper::new(COOKIE.to_string(), true);
+    let start = std::time::Instant::now();
+    let client = time_it!(at once | "creating client" =>
+        WebScraper::new(COOKIE.to_string(), true)
+    );
 
-    let wishlist_pages = get_all_wishlist_pages(&client)?;
+    let wishlist_pages = time_it!(at once | "getting wishlist pages" =>{
+            let pages = get_all_wishlist_pages(&client)?;
+            println!("number of pages = {}", pages.len());
+            pages
+        }
+    );
 
-    let mut all_item_numbers = Vec::new();
-    for page in wishlist_pages {
-        let page = Html::parse_document(&page);
-        let item_numbers = get_all_item_numbers_on_page(&page)?;
-        all_item_numbers.extend(item_numbers);
-    }
+    let all_item_numbers = time_it!(at once | "extracting items from pages" => {
+        let mut all_item_numbers = Vec::new();
+        for page in wishlist_pages {
+            let page = Html::parse_document(&page);
+            let item_numbers = get_all_item_numbers_on_page(&page)?;
+            all_item_numbers.extend(item_numbers);
+        }
+        all_item_numbers
+    });
 
     println!("number of items = {}", all_item_numbers.len());
 
-    let all_items = get_items(&client, all_item_numbers)?;
+    let all_items = time_it!(at once | "downloading all item pages" =>
+        get_items(&client, all_item_numbers)?
+    );
 
     time_it!("dumping" => client.dump_cache());
 
     println!("number of items: {:?}", all_items.len());
 
     println!("{}", client.get_cache_stats());
+
+    println!("time taken: {:?}", start.elapsed());
 
     Ok(())
 }

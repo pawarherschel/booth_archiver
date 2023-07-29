@@ -1,7 +1,8 @@
-use std::cell::RefCell;
 use std::fs;
+use std::sync::{Arc, RwLock};
 
-use indicatif::{ProgressBar, ProgressStyle};
+use indicatif::{ParallelProgressIterator, ProgressBar, ProgressStyle};
+use rayon::prelude::*;
 use ureq::{Agent, AgentBuilder};
 
 use crate::zaphkiel::cache::{Cache, HtmlCacheStats};
@@ -10,13 +11,13 @@ use crate::zaphkiel::cache::{Cache, HtmlCacheStats};
 #[allow(dead_code)]
 pub struct WebScraper {
     client: Agent,
-    cache: RefCell<Cache>,
+    cache: Arc<RwLock<Cache>>,
     cookie: String,
 }
 
 impl WebScraper {
     pub fn dump_cache(&self) {
-        self.cache.borrow().dump();
+        self.cache.clone().read().unwrap().dump();
     }
 }
 
@@ -34,9 +35,9 @@ impl WebScraper {
         let cookie = format!("{}; {}", session_cookie, adult_cookie);
 
         let cache = if fs::metadata("cache.json").is_ok() {
-            RefCell::new(Cache::new_from_file("cache.json".into()))
+            Arc::new(RwLock::new(Cache::new_from_file("cache.json".into())))
         } else {
-            RefCell::new(Cache::new())
+            Arc::new(RwLock::new(Cache::new()))
         };
 
         Self {
@@ -50,14 +51,23 @@ impl WebScraper {
 impl WebScraper {
     pub fn get_cache_stats(&self) -> String {
         let stats = HtmlCacheStats {
-            ..self.cache.borrow().stats.borrow().clone()
+            ..self
+                .cache
+                .clone()
+                .read()
+                .unwrap()
+                .stats
+                .clone()
+                .read()
+                .unwrap()
+                .clone()
         };
 
         format!("{:#?}", stats)
     }
 
     pub fn get_one(&self, url: String) -> Result<String, Box<dyn std::error::Error>> {
-        if let Some(html) = self.cache.borrow().get(&url) {
+        if let Some(html) = self.cache.clone().read().unwrap().get(&url) {
             return Ok(html);
         }
 
@@ -68,34 +78,35 @@ impl WebScraper {
             .call()?
             .into_string()?;
 
-        self.cache.borrow_mut().add(url, res.clone());
+        self.cache.clone().write().unwrap().add(url, res.clone());
 
         Ok(res)
     }
 
     pub fn get_many(&self, urls: Vec<String>) -> Result<Vec<String>, Box<dyn std::error::Error>> {
-        let mut htmls = Vec::new();
-
         let pb = ProgressBar::new(urls.len() as u64);
 
         let pb_style = ProgressStyle::default_bar()
             .template(
-                "{spinner:.green} [{elapsed_precise}] [{wide_bar:.cyan/blue}] {pos}/{len} ({msg})",
+                "{spinner:.green} [{elapsed}] [{wide_bar:.cyan/blue}] {pos}/{len} ({per_sec})",
             )?
             .progress_chars("#>-");
         pb.set_style(pb_style);
-
         pb.tick();
 
-        for (i, url) in urls.iter().enumerate() {
-            let html = self.get_one(url.clone())?;
-            htmls.push(html);
+        let htmls = urls
+            .par_iter()
+            .progress_with(pb)
+            .map(|url| self.get_one(url.clone()).unwrap())
+            .collect::<Vec<_>>();
 
-            pb.set_message(format!("{} items downloaded", i + 1));
-            pb.inc(1);
-        }
-
-        pb.finish_with_message("All items downloaded!");
+        // for (i, url) in urls.iter().enumerate() {
+        //     let html = self.get_one(url.clone())?;
+        //     htmls.push(html);
+        //
+        //     pb.set_message(&format!("{} downloaded", url));
+        //     pb.inc(1);
+        // }
 
         Ok(htmls)
     }

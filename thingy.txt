@@ -1,3 +1,4 @@
-async tokio    -> 00 hours 17 minutes 22 seconds | 894 pages =>  1.166+ pages per second
-blocking tokio -> 00 hours 26 minutes 14 seconds | 893 pages =>  1.762+ pages per second
-ureq           -> 00 hours 16 minutes 57 seconds | 893 pages =>  1.138+ pages per second
+async reqwest    -> 00 hours 17 minutes 22 seconds | 894 pages =>   1.166+ seconds per page
+blocking reqwest -> 00 hours 26 minutes 14 seconds | 893 pages =>   1.762+ seconds per page
+ureq             -> 00 hours 16 minutes 57 seconds | 893 pages =>   1.138+ seconds per page
+rayon + ureq     -> 00 hours 00 minutes 61 seconds | 893 pages =>  14.639+ pages per second
