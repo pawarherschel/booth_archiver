@@ -15,3 +15,4 @@ scraper = "0.17.1"
 serde = { version = "1.0.177", features = ["derive"] }
 serde_json = "1.0.104"
 structopt = "0.3.26"
+ureq = { version = "2.7.1", features = ["cookies", "cookie_store", "json", "serde", "serde_json"] }
