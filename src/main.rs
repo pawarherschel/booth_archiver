@@ -40,6 +40,8 @@ lazy_static! {
     };
 }
 
+// the reason we cannot parallelize this is because Document is not Send,
+// and we cannot send it to another thread
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
     let client = WebScraper::new(COOKIE.to_string(), true).await;
