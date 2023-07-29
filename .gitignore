@@ -15,5 +15,7 @@ Cargo.lock
 
 cookie.txt
 cache.json
+cache.json.bk
+
 
 temp
