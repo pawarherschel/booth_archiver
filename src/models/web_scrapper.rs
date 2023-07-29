@@ -1,11 +1,12 @@
 use std::fs;
 use std::sync::{Arc, RwLock};
 
-use indicatif::{ParallelProgressIterator, ProgressBar, ProgressStyle};
+use indicatif::ParallelProgressIterator;
 use rayon::prelude::*;
 use ureq::{Agent, AgentBuilder};
 
 use crate::zaphkiel::cache::{Cache, HtmlCacheStats};
+use crate::zaphkiel::utils::get_pb;
 
 /// Basic web scraper that uses a cache to avoid downloading the same page twice.
 #[derive(Debug)]
@@ -92,20 +93,9 @@ impl WebScraper {
 
     /// Get multiple pages, in parallel.
     pub fn get_many(&self, urls: Vec<String>) -> Vec<Result<String, ureq::Error>> {
-        let pb = ProgressBar::new(urls.len() as u64);
-
-        let pb_style = ProgressStyle::default_bar()
-            .template(
-                "{spinner:.green} [{elapsed}] [{wide_bar:.cyan/blue}] {pos}/{len} ({per_sec})",
-            )
-            .unwrap()
-            .progress_chars("#>-");
-        pb.set_style(pb_style);
-        pb.tick();
-
         let htmls = urls
             .par_iter()
-            .progress_with(pb)
+            .progress_with(get_pb(urls.len() as u64))
             .map(|url| self.get_one(url.clone()))
             .collect::<Vec<_>>();
         htmls

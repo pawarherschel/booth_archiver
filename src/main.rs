@@ -1,3 +1,4 @@
+use indicatif::ParallelProgressIterator;
 use lazy_static::lazy_static;
 use path_absolutize::Absolutize;
 use rayon::prelude::*;
@@ -8,6 +9,7 @@ use booth_archiver::models::config::Config;
 use booth_archiver::models::web_scrapper::WebScraper;
 use booth_archiver::time_it;
 use booth_archiver::zaphkiel::static_strs::BASE_BOOTH_ITEM_URL;
+use booth_archiver::zaphkiel::utils::get_pb;
 
 lazy_static! {
     /// The config for the program.
@@ -83,6 +85,7 @@ fn main() {
     let images = time_it!(at once | "extracting images from all items" =>
         all_item_pages_urls
             .par_iter()
+            .progress_with(get_pb(all_item_pages_urls.len() as u64))
             .map(|item| extract_image_urls_from_url(&client, item.clone()))
             .flatten()
             .flatten()

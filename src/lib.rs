@@ -8,4 +8,5 @@ pub mod zaphkiel {
     pub mod cache;
     pub mod macros;
     pub mod static_strs;
+    pub mod utils;
 }
