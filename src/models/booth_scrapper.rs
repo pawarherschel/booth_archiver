@@ -1,18 +1,18 @@
-use std::error::Error;
-
 use scraper::{Html, Selector};
 
 use crate::models::web_scrapper::WebScraper;
 use crate::zaphkiel::static_strs::*;
 
 /// Get the last page number of the wishlist.
-fn get_last_page_number(client: &WebScraper) -> Result<u32, Box<dyn Error>> {
-    let document = client.get_one(BASE_BOOTH_WISHLIST_URL.to_string())?;
+fn get_last_page_number(client: &WebScraper) -> u32 {
+    let document = client
+        .get_one(BASE_BOOTH_WISHLIST_URL.to_string())
+        .unwrap_or_else(|e| panic!("failed to get wishlist page because of error: {}", e));
     let document = Html::parse_document(&document);
-    let selector = Selector::parse("a.nav-item.last-page")?;
+    let selector = Selector::parse("a.nav-item.last-page").unwrap();
     let last_page = document.select(&selector).last().expect(
         "failed to get last page, \
-            are you sure the cookie is in the correct place and is valid?",
+            are you sure the cookie is in the correct place and is valid",
     );
     let href = last_page
         .value()
@@ -21,20 +21,24 @@ fn get_last_page_number(client: &WebScraper) -> Result<u32, Box<dyn Error>> {
     let page = href.split("page=").collect::<Vec<&str>>()[1]
         .parse::<u32>()
         .expect("failed to parse page number");
-    Ok(page)
+
+    page
 }
 
 /// Get all the wishlist pages.
-pub fn get_all_wishlist_pages(client: &WebScraper) -> Result<Vec<String>, Box<dyn Error>> {
-    let last_page = get_last_page_number(client)?;
+pub fn get_all_wishlist_pages(client: &WebScraper) -> Vec<String> {
+    let last_page = get_last_page_number(client);
 
     let urls = (1..=last_page)
         .map(|page_number| format!("{}{}", BASE_BOOTH_WISHLIST_URL, page_number))
         .collect::<Vec<_>>();
 
-    let pages = client.get_many(urls)?;
-
-    Ok(pages)
+    client
+        .get_many(urls)
+        .iter()
+        .filter_map(|r| r.as_ref().ok())
+        .cloned()
+        .collect()
 }
 
 /// Get all the item numbers on a wishlist page.
@@ -42,16 +46,17 @@ pub fn get_all_wishlist_pages(client: &WebScraper) -> Result<Vec<String>, Box<dy
 /// # Arguments
 ///
 /// * `page` - The page to get the item numbers from.
-pub fn get_all_item_numbers_on_page(page: &Html) -> Result<Vec<u32>, Box<dyn Error>> {
+pub fn get_all_item_numbers_on_page(page: &Html) -> Vec<u32> {
     let selector =
-        Selector::parse("body > div.page-wrap > main > div.manage-page-body > div > div > ul")?;
+        Selector::parse("body > div.page-wrap > main > div.manage-page-body > div > div > ul")
+            .unwrap();
 
     let ul = page
         .select(&selector)
         .next()
         .expect("failed to get the list of items from the webpage");
 
-    let selector = Selector::parse("li")?;
+    let selector = Selector::parse("li").unwrap();
 
     let list = ul.select(&selector).collect::<Vec<_>>();
 
@@ -69,7 +74,7 @@ pub fn get_all_item_numbers_on_page(page: &Html) -> Result<Vec<u32>, Box<dyn Err
             });
     }
 
-    Ok(items)
+    items
 }
 
 /// Get all the item webpages on all wishlist pages.
@@ -78,10 +83,14 @@ pub fn get_all_item_numbers_on_page(page: &Html) -> Result<Vec<u32>, Box<dyn Err
 ///
 /// * `client` - The client to use to get the webpages.
 /// * `id` - The id of the item to get.
-pub fn get_item(client: &WebScraper, id: u32) -> Result<String, Box<dyn Error>> {
+pub fn get_item(client: &WebScraper, id: u32) -> String {
     let url = format!("{}{}", BASE_BOOTH_ITEM_URL, id);
-    let document = client.get_one(url)?;
-    Ok(document)
+    client.get_one(url).unwrap_or_else(|e| {
+        panic!(
+            "failed to get item page for item number {} because of error: {}",
+            id, e
+        )
+    })
 }
 
 /// Get all the item webpages from a list of item ids.
@@ -90,11 +99,59 @@ pub fn get_item(client: &WebScraper, id: u32) -> Result<String, Box<dyn Error>> 
 ///
 /// * `client` - The client to use to get the webpages.
 /// * `ids` - The ids of the items to get.
-pub fn get_items(client: &WebScraper, ids: Vec<u32>) -> Result<Vec<String>, Box<dyn Error>> {
+pub fn get_items(client: &WebScraper, ids: Vec<u32>) -> Vec<String> {
     let urls = ids
         .iter()
         .map(|id| format!("{}{}", BASE_BOOTH_ITEM_URL, id))
         .collect::<Vec<_>>();
-    let documents = client.get_many(urls)?;
-    Ok(documents)
+    client
+        .get_many(urls)
+        .iter()
+        .filter_map(|r| r.as_ref().ok())
+        .cloned()
+        .collect()
+}
+
+pub fn extract_image_urls_from_item_page(document: &Html) -> Option<Vec<String>> {
+    let selector = Selector::parse(".market-item-detail-item-image").unwrap();
+    let potential_images = document
+        .select(&selector)
+        .map(
+            |img| match img.value().attrs().find(|(k, _)| *k == "data-origin") {
+                Some((_, v)) => Some(v.to_string()),
+                None => None,
+            },
+        )
+        .flatten()
+        .collect::<Vec<_>>();
+
+    if potential_images.is_empty() {
+        println!("failed to get image from item page, either something happened or the page didnt have any");
+        None
+    } else {
+        Some(potential_images)
+    }
+}
+
+pub fn extract_image_urls_from_url(client: &WebScraper, url: String) -> Option<Vec<String>> {
+    let doc = match client.get_one(url.clone()) {
+        Ok(doc) => doc,
+        Err(e) => {
+            println!(
+                "failed to get document from url: {}, because of error: {}",
+                url, e
+            );
+            return None;
+        }
+    };
+    let doc = Html::parse_document(&doc);
+    let potential_images = extract_image_urls_from_item_page(&doc);
+
+    match potential_images {
+        None => {
+            println!("failing url: {}", url);
+            None
+        }
+        images => images,
+    }
 }

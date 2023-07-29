@@ -59,23 +59,21 @@ impl WebScraper {
     /// Get the cache stats.
     pub fn get_cache_stats(&self) -> String {
         let stats = HtmlCacheStats {
-            ..self
-                .cache
-                .clone()
-                .read()
-                .unwrap()
-                .stats
-                .clone()
-                .read()
-                .unwrap()
-                .clone()
+            ..self.cache.clone().read().unwrap().get_stats()
         };
 
         format!("{:#?}", stats)
     }
 
+    /// Get the cache misses.
+    pub fn get_cache_misses(&self) -> String {
+        let misses = self.cache.clone().read().unwrap().get_misses();
+
+        format!("{:#?}", misses)
+    }
+
     /// Get a single page.
-    pub fn get_one(&self, url: String) -> Result<String, Box<dyn std::error::Error>> {
+    pub fn get_one(&self, url: String) -> Result<String, ureq::Error> {
         if let Some(html) = self.cache.clone().read().unwrap().get(&url) {
             return Ok(html);
         }
@@ -93,13 +91,14 @@ impl WebScraper {
     }
 
     /// Get multiple pages, in parallel.
-    pub fn get_many(&self, urls: Vec<String>) -> Result<Vec<String>, Box<dyn std::error::Error>> {
+    pub fn get_many(&self, urls: Vec<String>) -> Vec<Result<String, ureq::Error>> {
         let pb = ProgressBar::new(urls.len() as u64);
 
         let pb_style = ProgressStyle::default_bar()
             .template(
                 "{spinner:.green} [{elapsed}] [{wide_bar:.cyan/blue}] {pos}/{len} ({per_sec})",
-            )?
+            )
+            .unwrap()
             .progress_chars("#>-");
         pb.set_style(pb_style);
         pb.tick();
@@ -107,8 +106,8 @@ impl WebScraper {
         let htmls = urls
             .par_iter()
             .progress_with(pb)
-            .map(|url| self.get_one(url.clone()).unwrap())
+            .map(|url| self.get_one(url.clone()))
             .collect::<Vec<_>>();
-        Ok(htmls)
+        htmls
     }
 }

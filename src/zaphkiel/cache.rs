@@ -14,7 +14,8 @@ use crate::time_it;
 #[derive(Debug, Default, Clone)]
 pub struct Cache {
     pub cache: HashMap<String, String>,
-    pub stats: Arc<RwLock<HtmlCacheStats>>,
+    stats: Arc<RwLock<HtmlCacheStats>>,
+    misses: Arc<RwLock<Vec<String>>>,
     accesses: u64,
     path_to_cache: PathBuf,
 }
@@ -62,11 +63,12 @@ impl Cache {
 
     /// Get a value from the cache
     pub fn get(&self, key: &String) -> Option<String> {
-        if let Some(value) = self.cache.get(&*key) {
+        if let Some(value) = self.cache.get(key) {
             self.hit();
             Some(value.clone())
         } else {
             self.miss();
+            self.misses.write().unwrap().push(key.clone());
             None
         }
     }
@@ -134,5 +136,27 @@ impl Cache {
 
         fs::write(path, cache)
             .unwrap_or_else(|e| panic!("failed to write to cache file because of error: {}", e));
+    }
+}
+
+impl Cache {
+    /// get the stats of the cache
+    pub fn get_stats(&self) -> HtmlCacheStats {
+        self.stats.clone().read().unwrap().clone()
+    }
+
+    /// get the keys which caused misses
+    pub fn get_misses(&self) -> Vec<String> {
+        self.misses.clone().read().unwrap().clone()
+    }
+
+    /// get the number of times the cache was accessed
+    pub fn get_accesses(&self) -> u64 {
+        self.accesses
+    }
+
+    /// get the path to the cache file
+    pub fn get_path_to_cache(&self) -> PathBuf {
+        self.path_to_cache.clone()
     }
 }
