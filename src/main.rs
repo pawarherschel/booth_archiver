@@ -11,17 +11,30 @@ use booth_archiver::time_it;
 lazy_static! {
     pub static ref CONFIG: Config = time_it!("loading config" => Config::get());
     pub static ref COOKIE: String = {
-        std::fs::read_to_string(CONFIG.cookie_file.as_ref().unwrap()).unwrap_or_else(|_| {
+        std::fs::read_to_string(
+            CONFIG
+                .cookie_file
+                .as_ref()
+                .expect("failed to build path from PathBuf"),
+        )
+        .unwrap_or_else(|e| {
             panic!(
-                "expecting cookie to be in {}",
+                "expecting cookie to be in {}, because of error: {}",
                 CONFIG
                     .cookie_file
                     .as_ref()
-                    .unwrap()
+                    .expect(
+                        "failed to build Path from PathBuf, \
+                        imagine panicking inside a panic lmao"
+                    )
                     .absolutize()
-                    .unwrap()
+                    .expect(
+                        "failed to absolutize path from PathBuf, \
+                        imagine panicking inside a panic lmao"
+                    )
                     .to_str()
-                    .unwrap()
+                    .expect("failed to convert path to str, imagine panicking inside a panic lmao"),
+                e
             )
         })
     };

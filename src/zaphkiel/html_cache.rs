@@ -66,15 +66,28 @@ impl HtmlCache {
 
     pub async fn pump(&self) {
         println!("pumping");
-        let cache =
-            time_it!("\treading from cache file" => fs::read_to_string("cache.json").unwrap());
+        let cache = time_it!("\treading from cache file" =>
+            fs::read_to_string("cache.json").expect("cache.json not found")
+        );
 
-        let cache: HashMap<String, String> = time_it!("\tconverting to hashmap from string" => serde_json::from_str(&cache).unwrap());
+        let cache: HashMap<String, String> = time_it!("\tconverting to hashmap from string" =>
+            serde_json::from_str(&cache)
+                .expect("Failed to parse cache.json, \
+                cache.json exists but the json data is invalid")
+        );
 
-        let cache: HashMap<Url, Html> = time_it!("\tconverting to in-memory representation of the cache"
+        let cache: HashMap<Url, Html> = time_it!("\tparsing to Url and Html"
             => cache
             .into_iter()
-            .map(|(k, v)| (Url::parse(&k).unwrap(), Html::parse_document(&v)))
+            .map(|(k, v)|
+                (
+                    Url::parse(&k)
+                        .unwrap_or_else(|e| {
+                            panic!("{}", format!("failed to parse url from {}, with error {}", &k, e)
+                                .deref()
+                                .to_string())
+                        }),
+                    Html::parse_document(&v)))
             .collect()
         );
 
@@ -90,8 +103,10 @@ impl HtmlCache {
                 .collect()
         };
 
-        let cache = serde_json::to_string(&serialize_friendly_map).unwrap();
+        let cache = serde_json::to_string(&serialize_friendly_map)
+            .expect("failed to serialize from hashmap to json");
 
-        fs::write("cache.json", cache).unwrap()
+        fs::write("cache.json", cache)
+            .unwrap_or_else(|e| panic!("failed to write to cache.json, because of error: {}", e));
     }
 }

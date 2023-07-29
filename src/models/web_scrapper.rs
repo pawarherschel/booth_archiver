@@ -21,7 +21,10 @@ impl WebScraper {
 
 impl WebScraper {
     pub async fn new(cookie: String, adult: bool) -> Self {
-        let client = Client::builder().cookie_store(true).build().unwrap();
+        let client = Client::builder()
+            .cookie_store(true)
+            .build()
+            .expect("failed to build client");
 
         let session_cookie = format!("_plaza_session_nktz7u={}; Secure", cookie);
         let adult_cookie = format!("adult={}; Secure", if adult { "t" } else { "f" });
