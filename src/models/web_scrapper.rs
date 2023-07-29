@@ -7,8 +7,8 @@ use ureq::{Agent, AgentBuilder};
 
 use crate::zaphkiel::cache::{Cache, HtmlCacheStats};
 
+/// Basic web scraper that uses a cache to avoid downloading the same page twice.
 #[derive(Debug)]
-#[allow(dead_code)]
 pub struct WebScraper {
     client: Agent,
     cache: Arc<RwLock<Cache>>,
@@ -16,12 +16,19 @@ pub struct WebScraper {
 }
 
 impl WebScraper {
+    /// Dump the cache to a file.
     pub fn dump_cache(&self) {
         self.cache.clone().read().unwrap().dump();
     }
 }
 
 impl WebScraper {
+    /// Create a new web scraper.
+    ///
+    /// # Arguments
+    ///
+    /// * `cookie` - The cookie to use for the requests.
+    /// * `adult` - Whether to use the adult cookie or not.
     pub fn new(cookie: String, adult: bool) -> Self {
         let user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) \
             AppleWebKit/537.36 (KHTML, like Gecko) \
@@ -49,6 +56,7 @@ impl WebScraper {
 }
 
 impl WebScraper {
+    /// Get the cache stats.
     pub fn get_cache_stats(&self) -> String {
         let stats = HtmlCacheStats {
             ..self
@@ -66,6 +74,7 @@ impl WebScraper {
         format!("{:#?}", stats)
     }
 
+    /// Get a single page.
     pub fn get_one(&self, url: String) -> Result<String, Box<dyn std::error::Error>> {
         if let Some(html) = self.cache.clone().read().unwrap().get(&url) {
             return Ok(html);
@@ -83,6 +92,7 @@ impl WebScraper {
         Ok(res)
     }
 
+    /// Get multiple pages, in parallel.
     pub fn get_many(&self, urls: Vec<String>) -> Result<Vec<String>, Box<dyn std::error::Error>> {
         let pb = ProgressBar::new(urls.len() as u64);
 
@@ -99,15 +109,6 @@ impl WebScraper {
             .progress_with(pb)
             .map(|url| self.get_one(url.clone()).unwrap())
             .collect::<Vec<_>>();
-
-        // for (i, url) in urls.iter().enumerate() {
-        //     let html = self.get_one(url.clone())?;
-        //     htmls.push(html);
-        //
-        //     pb.set_message(&format!("{} downloaded", url));
-        //     pb.inc(1);
-        // }
-
         Ok(htmls)
     }
 }

@@ -9,8 +9,9 @@ use serde::{Deserialize, Serialize};
 
 use crate::time_it;
 
+/// generic cache that stores a key-value pair
+/// It is safe to use this cache from multiple threads if you wrap it in an Arc<RwLock<_>>
 #[derive(Debug, Default, Clone)]
-#[allow(dead_code)]
 pub struct Cache {
     pub cache: HashMap<String, String>,
     pub stats: Arc<RwLock<HtmlCacheStats>>,
@@ -18,18 +19,20 @@ pub struct Cache {
     path_to_cache: PathBuf,
 }
 
+/// Stats for the cache
 #[derive(Debug, Default, Serialize, Deserialize, PartialEq, Eq, Clone)]
-#[allow(dead_code)]
 pub struct HtmlCacheStats {
     pub cache_hits: u64,
     pub cache_misses: u64,
 }
 
 impl Cache {
+    /// Create a new cache with default values
     pub fn new() -> Self {
         Self::new_with_path("cache.json".into())
     }
 
+    /// Create a new cache with a custom path
     pub fn new_with_path(path_to_cache: PathBuf) -> Self {
         Self {
             path_to_cache,
@@ -37,6 +40,7 @@ impl Cache {
         }
     }
 
+    /// Create a new cache and uses the cache from the given path
     pub fn new_from_file(cache_location: PathBuf) -> Self {
         let mut new = Self::new_with_path(cache_location.clone());
 
@@ -47,6 +51,7 @@ impl Cache {
 }
 
 impl Cache {
+    /// Add a key-value pair to the cache
     pub fn add(&mut self, key: String, value: String) {
         self.cache.insert(key, value);
         self.accesses += 1;
@@ -54,6 +59,8 @@ impl Cache {
             self.dump();
         }
     }
+
+    /// Get a value from the cache
     pub fn get(&self, key: &String) -> Option<String> {
         if let Some(value) = self.cache.get(&*key) {
             self.hit();
@@ -66,25 +73,31 @@ impl Cache {
 }
 
 impl Cache {
+    /// increments the cache hit counter
     pub fn hit(&self) {
         self.stats.clone().write().unwrap().cache_hits += 1;
     }
+
+    /// increments the cache miss counter
     pub fn miss(&self) {
         self.stats.clone().write().unwrap().cache_misses += 1;
     }
 }
 
 impl Cache {
+    /// pump the cache from the cache file
     pub fn pump(&mut self) {
-        self.pump_from_file("cache.json".into());
-    }
-    pub fn dump(&self) {
-        self.dump_to_file("cache.json".into());
+        self.pump_from_file(self.path_to_cache.clone());
     }
 
+    /// dump the cache to the cache file
+    pub fn dump(&self) {
+        self.dump_to_file(self.path_to_cache.clone());
+    }
+
+    /// pump the cache from the given cache file
     pub fn pump_from_file(&mut self, cache_location: PathBuf) {
-        println!("pumping from {:?}", &cache_location);
-        let cache = time_it!("\treading from cache file" =>
+        let cache = time_it!("reading from cache file" =>
         fs::read_to_string(&cache_location)
             .unwrap_or_else(|_| panic!("{} not found",
                     cache_location
@@ -94,15 +107,16 @@ impl Cache {
                         .expect("failed to convert path to str")))
         );
 
-        let cache: HashMap<String, String> = time_it!("\tconverting to hashmap from string" =>
+        let cache: HashMap<String, String> = time_it!("converting to hashmap from string" =>
             serde_json::from_str(&cache)
                 .expect("Failed to parse cache.json, \
                 cache.json exists but the json data is invalid")
         );
 
         self.cache = cache;
-        println!("pumped");
     }
+
+    /// dump the cache to the given cache file
     pub fn dump_to_file(&self, cache_location: PathBuf) {
         let cache =
             serde_json::to_string(&self.cache).expect("failed to serialize from hashmap to json");

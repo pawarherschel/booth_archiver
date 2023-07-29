@@ -10,7 +10,10 @@ use booth_archiver::models::web_scrapper::WebScraper;
 use booth_archiver::time_it;
 
 lazy_static! {
+    /// The config for the program.
     pub static ref CONFIG: Config = time_it!("loading config" => Config::get());
+
+    /// The cookie for the program.
     pub static ref COOKIE: String = {
         std::fs::read_to_string(
             CONFIG
@@ -41,8 +44,6 @@ lazy_static! {
     };
 }
 
-// the reason we cannot parallelize this is because Document is not Send,
-// and we cannot send it to another thread
 fn main() -> Result<(), Box<dyn Error>> {
     let start = std::time::Instant::now();
     let client = time_it!(at once | "creating client" =>

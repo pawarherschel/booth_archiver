@@ -5,7 +5,8 @@ use scraper::{Html, Selector};
 use crate::models::web_scrapper::WebScraper;
 use crate::zaphkiel::static_strs::*;
 
-pub fn get_last_page_number(client: &WebScraper) -> Result<u32, Box<dyn Error>> {
+/// Get the last page number of the wishlist.
+fn get_last_page_number(client: &WebScraper) -> Result<u32, Box<dyn Error>> {
     let document = client.get_one(BASE_BOOTH_WISHLIST_URL.to_string())?;
     let document = Html::parse_document(&document);
     let selector = Selector::parse("a.nav-item.last-page")?;
@@ -23,6 +24,7 @@ pub fn get_last_page_number(client: &WebScraper) -> Result<u32, Box<dyn Error>> 
     Ok(page)
 }
 
+/// Get all the wishlist pages.
 pub fn get_all_wishlist_pages(client: &WebScraper) -> Result<Vec<String>, Box<dyn Error>> {
     let last_page = get_last_page_number(client)?;
 
@@ -35,6 +37,11 @@ pub fn get_all_wishlist_pages(client: &WebScraper) -> Result<Vec<String>, Box<dy
     Ok(pages)
 }
 
+/// Get all the item numbers on a wishlist page.
+///
+/// # Arguments
+///
+/// * `page` - The page to get the item numbers from.
 pub fn get_all_item_numbers_on_page(page: &Html) -> Result<Vec<u32>, Box<dyn Error>> {
     let selector =
         Selector::parse("body > div.page-wrap > main > div.manage-page-body > div > div > ul")?;
@@ -65,12 +72,24 @@ pub fn get_all_item_numbers_on_page(page: &Html) -> Result<Vec<u32>, Box<dyn Err
     Ok(items)
 }
 
+/// Get all the item webpages on all wishlist pages.
+///
+/// # Arguments
+///
+/// * `client` - The client to use to get the webpages.
+/// * `id` - The id of the item to get.
 pub fn get_item(client: &WebScraper, id: u32) -> Result<String, Box<dyn Error>> {
     let url = format!("{}{}", BASE_BOOTH_ITEM_URL, id);
     let document = client.get_one(url)?;
     Ok(document)
 }
 
+/// Get all the item webpages from a list of item ids.
+///
+/// # Arguments
+///
+/// * `client` - The client to use to get the webpages.
+/// * `ids` - The ids of the items to get.
 pub fn get_items(client: &WebScraper, ids: Vec<u32>) -> Result<Vec<String>, Box<dyn Error>> {
     let urls = ids
         .iter()
