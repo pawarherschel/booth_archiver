@@ -15,7 +15,7 @@ lazy_static! {
             CONFIG
                 .cookie_file
                 .as_ref()
-                .expect("failed to build path from PathBuf"),
+                .expect("failed to build Path from PathBuf"),
         )
         .unwrap_or_else(|e| {
             panic!(
