@@ -1,0 +1,2 @@
+tokio          -> 00 hours 17 minutes 22 seconds | 894 pages =>  1.166+ pages per second
+blocking_tokio -> 00 hours 26 minutes 14 seconds | 893 pages =>  1.762+ pages per second
