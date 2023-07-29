@@ -79,25 +79,6 @@ fn main() {
     );
     time_it!("dumping" => client.dump_cache());
     println!("number of items: {:}", all_items.len());
-    time_it!(at once | "testing images extraction" => {
-        let urls = {
-            use booth_archiver::temp::testing_urls::TESTING_URLS;
-            TESTING_URLS
-                .iter()
-                .map(|url| url.to_string())
-                .collect::<Vec<_>>()
-        };
-        println!("number of test urls: {:}", urls.len());
-
-        let images = time_it!(at once | "extracting images from test urls" =>
-            urls
-                .par_iter()
-                .map(|url| extract_image_urls_from_url(&client, url.to_owned()))
-                .flatten().flatten()
-                .collect::<Vec<_>>()
-        );
-        println!("number of images: {:}", images.len());}
-    );
 
     let images = time_it!(at once | "extracting images from all items" =>
         all_item_pages_urls
