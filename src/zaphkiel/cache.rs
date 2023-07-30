@@ -122,6 +122,10 @@ impl Cache {
 
     /// dump the cache to the given cache file
     pub fn dump_to_file(&self, cache_location: PathBuf) {
+        if self.get_stats().cache_misses == 0 {
+            return;
+        }
+
         let cache = to_string_pretty(&self.cache, PrettyConfig::default())
             .expect("failed to serialize from hashmap to ron");
 

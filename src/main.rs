@@ -1,56 +1,31 @@
 use indicatif::ParallelProgressIterator;
-use lazy_static::lazy_static;
-use path_absolutize::Absolutize;
 use rayon::prelude::*;
 use scraper::Html;
 
 use booth_archiver::models::booth_scrapper::*;
-use booth_archiver::models::config::Config;
 use booth_archiver::models::web_scrapper::WebScraper;
+use booth_archiver::temp::testing_urls::TESTING_URLS;
 use booth_archiver::time_it;
+use booth_archiver::zaphkiel::lazy_statics::*;
 use booth_archiver::zaphkiel::static_strs::BASE_BOOTH_ITEM_URL;
 use booth_archiver::zaphkiel::utils::get_pb;
 
-lazy_static! {
-    /// The config for the program.
-    pub static ref CONFIG: Config = time_it!("loading config" => Config::get());
-
-    /// The cookie for the program.
-    pub static ref COOKIE: String = {
-        std::fs::read_to_string(
-            CONFIG
-                .cookie_file
-                .as_ref()
-                .expect("failed to build Path from PathBuf"),
-        )
-        .unwrap_or_else(|e| {
-            panic!(
-                "expecting cookie to be in {}, because of error: {}",
-                CONFIG
-                    .cookie_file
-                    .as_ref()
-                    .expect(
-                        "failed to build Path from PathBuf, \
-                        imagine panicking inside a panic lmao"
-                    )
-                    .absolutize()
-                    .expect(
-                        "failed to absolutize path from PathBuf, \
-                        imagine panicking inside a panic lmao"
-                    )
-                    .to_str()
-                    .expect("failed to convert path to str, imagine panicking inside a panic lmao"),
-                e
-            )
-        })
-    };
-}
-
 /// TODO: make it so the cache location is separate for every class of url, eg: wishlist pages, item pages, images, etc.
 /// TODO: cache the images
+/// TODO: use the fucking api dumbass: format!("https://booth.pm/en/items/{}.json", item_id)
 fn main() {
     let start = std::time::Instant::now();
+    // test area
 
+    dbg!(CLIENT.get_one(format!("https://booth.pm/en/items/{}.json", 1903612)))
+        .expect("TODO: panic message");
+
+    panic!();
+
+    let page = Html::parse_document(&CLIENT.get_one(TESTING_URLS[0].to_string()).unwrap());
+    let info = extract_item_data_from_item_page(&page).unwrap();
+
+    // test area over
     let client = time_it!(at once | "creating client" =>
         WebScraper::new(COOKIE.to_string(), true)
     );

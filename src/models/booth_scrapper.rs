@@ -157,6 +157,85 @@ pub fn extract_image_urls_from_url(client: &WebScraper, url: String) -> Option<V
 }
 
 pub fn extract_item_data_from_item_page(document: &Html) -> Option<ItemInfo> {
+    let shop_text_selector = Selector::parse("header.shop__text").unwrap();
+    let shop_text_element = document
+        .select(&shop_text_selector)
+        .next()
+        .expect("failed to get shop text");
+
+    let shop_name_selector = Selector::parse("h2").unwrap();
+
+    let shop_name = shop_text_element
+        .select(&shop_name_selector)
+        .next()
+        .expect("failed to get shop name element")
+        .inner_html();
+
+    let images_selector = Selector::parse("img").unwrap();
+
+    let images = shop_text_element
+        .select(&images_selector)
+        .collect::<Vec<_>>();
+
+    let shop_name: String = images
+        .iter()
+        .map(|image| {
+            image
+                .value()
+                .attrs()
+                .find(|(k, v)| *k == "alt" && *v != "VRChat")
+                .unwrap_or_default()
+                .1
+        })
+        .collect();
+
+    dbg!(shop_name);
+
+    let anchor_selector = Selector::parse("a").unwrap();
+
+    let shop_url: String = shop_text_element
+        .select(&anchor_selector)
+        .map(|a| a.value().attrs().find(|(k, _)| *k == "href").unwrap().1)
+        .filter(|href| href.ends_with("booth.pm/"))
+        .collect();
+
+    dbg!(shop_url);
+
+    // FIXME: nav hasnt loaded yet to extract categories
+    // method 1
+    // let nav_selector = Selector::parse("nav").unwrap();
+    //
+    // let nav_element = shop_text_element
+    //     .select(&nav_selector)
+    //     .next()
+    //     .expect("failed to get nav element");
+    //
+    // let nav_anchors = nav_element.select(&anchor_selector).collect::<Vec<_>>();
+    //
+    // for anchor in nav_anchors {
+    //     let href = anchor
+    //         .value()
+    //         .attrs()
+    //         .find(|(k, _)| *k == "href")
+    //         .unwrap()
+    //         .1;
+    //     let text = anchor.inner_html();
+    //
+    //     dbg!(href, text);
+    // }
+    //
+    // method 2
+    //
+    // let category_selector = Selector::parse("item-card__category-anchor nav-reverse").unwrap();
+    //
+    // let category = shop_text_element
+    //     .select(&category_selector)
+    //     .next()
+    //     .expect("failed to get category element")
+    //     .inner_html();
+    //
+    // dbg!(category);
+
     todo!()
 }
 
