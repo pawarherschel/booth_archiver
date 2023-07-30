@@ -25,6 +25,7 @@ pub struct Cache {
 pub struct HtmlCacheStats {
     pub cache_hits: u64,
     pub cache_misses: u64,
+    pub cache_size: usize,
 }
 
 impl Cache {
@@ -142,6 +143,7 @@ impl Cache {
 impl Cache {
     /// get the stats of the cache
     pub fn get_stats(&self) -> HtmlCacheStats {
+        self.stats.write().unwrap().cache_size = self.cache.len();
         self.stats.clone().read().unwrap().clone()
     }
 
