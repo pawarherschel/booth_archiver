@@ -1,3 +1,4 @@
+use crate::models::item_metadata::ItemInfo;
 use scraper::{Html, Selector};
 
 use crate::models::web_scrapper::WebScraper;
@@ -116,13 +117,12 @@ pub fn extract_image_urls_from_item_page(document: &Html) -> Option<Vec<String>>
     let selector = Selector::parse(".market-item-detail-item-image").unwrap();
     let potential_images = document
         .select(&selector)
-        .map(
-            |img| match img.value().attrs().find(|(k, _)| *k == "data-origin") {
-                Some((_, v)) => Some(v.to_string()),
-                None => None,
-            },
-        )
-        .flatten()
+        .filter_map(|img| {
+            img.value()
+                .attrs()
+                .find(|(k, _)| *k == "data-origin")
+                .map(|(_, v)| v.to_string())
+        })
         .collect::<Vec<_>>();
 
     if potential_images.is_empty() {
@@ -153,5 +153,33 @@ pub fn extract_image_urls_from_url(client: &WebScraper, url: String) -> Option<V
             None
         }
         images => images,
+    }
+}
+
+pub fn extract_item_data_from_item_page(document: &Html) -> Option<ItemInfo> {
+    todo!()
+}
+
+pub fn extract_item_data_from_url(client: &WebScraper, url: String) -> Option<ItemInfo> {
+    let doc = match client.get_one(url.clone()) {
+        Ok(doc) => doc,
+        Err(e) => {
+            println!(
+                "failed to get document from url: {}, because of error: {}",
+                url, e
+            );
+            return None;
+        }
+    };
+    let doc = Html::parse_document(&doc);
+
+    let potential_item_info = extract_item_data_from_item_page(&doc);
+
+    match potential_item_info {
+        None => {
+            println!("failing url: {}", url);
+            None
+        }
+        item_info => item_info,
     }
 }
