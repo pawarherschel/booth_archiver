@@ -1,6 +1,6 @@
-use crate::models::item_metadata::ItemInfo;
 use scraper::{Html, Selector};
 
+use crate::models::item_metadata::ItemInfo;
 use crate::models::web_scrapper::WebScraper;
 use crate::zaphkiel::static_strs::*;
 
