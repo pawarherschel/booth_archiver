@@ -42,8 +42,8 @@ impl WebScraper {
         let adult_cookie = format!("adult={}; Secure", if adult { "t" } else { "f" });
         let cookie = format!("{}; {}", session_cookie, adult_cookie);
 
-        let cache = if fs::metadata("cache.json").is_ok() {
-            Arc::new(RwLock::new(Cache::new_from_file("cache.json".into())))
+        let cache = if fs::metadata("cache.ron").is_ok() {
+            Arc::new(RwLock::new(Cache::new_from_file("cache.ron".into())))
         } else {
             Arc::new(RwLock::new(Cache::new()))
         };

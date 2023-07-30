@@ -5,7 +5,9 @@ use std::sync::Arc;
 use std::sync::RwLock;
 
 use path_absolutize::Absolutize;
+use ron::ser::{to_string_pretty, PrettyConfig};
 use serde::{Deserialize, Serialize};
+use ureq::serde_json;
 
 use crate::time_it;
 
@@ -31,7 +33,7 @@ pub struct HtmlCacheStats {
 impl Cache {
     /// Create a new cache with default values
     pub fn new() -> Self {
-        Self::new_with_path("cache.json".into())
+        Self::new_with_path("cache.ron".into())
     }
 
     /// Create a new cache with a custom path
@@ -111,9 +113,9 @@ impl Cache {
         );
 
         let cache: HashMap<String, String> = time_it!("converting to hashmap from string" =>
-            serde_json::from_str(&cache)
-                .expect("Failed to parse cache.json, \
-                cache.json exists but the json data is invalid")
+            ron::from_str(&cache)
+                .expect("Failed to parse cache.ron, \
+                cache.ron exists but the ron data is invalid")
         );
 
         self.cache = cache;
@@ -121,8 +123,8 @@ impl Cache {
 
     /// dump the cache to the given cache file
     pub fn dump_to_file(&self, cache_location: PathBuf) {
-        let cache =
-            serde_json::to_string(&self.cache).expect("failed to serialize from hashmap to json");
+        let cache = to_string_pretty(&self.cache, PrettyConfig::default())
+            .expect("failed to serialize from hashmap to ron");
 
         let path = cache_location.to_str().unwrap_or_else(|| {
             panic!(

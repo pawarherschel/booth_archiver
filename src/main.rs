@@ -46,8 +46,11 @@ lazy_static! {
     };
 }
 
+/// TODO: make it so the cache location is separate for every class of url, eg: wishlist pages, item pages, images, etc.
+/// TODO: cache the images
 fn main() {
     let start = std::time::Instant::now();
+
     let client = time_it!(at once | "creating client" =>
         WebScraper::new(COOKIE.to_string(), true)
     );
