@@ -39,8 +39,4 @@ lazy_static! {
         })
     };
     pub static ref CLIENT: WebScraper = WebScraper::new(COOKIE.to_string(), true);
-    pub static ref TEST_URLS: Vec<String> = {
-        use super::super::temp::testing_urls::TESTING_URLS;
-        TESTING_URLS.iter().map(|&s| s.to_owned()).collect()
-    };
 }
