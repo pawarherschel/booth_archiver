@@ -13,6 +13,6 @@ pub mod zaphkiel {
     pub mod utils;
 }
 
-pub mod temp {
-    pub mod testing_urls;
+pub mod api_structs {
+    pub mod items;
 }
