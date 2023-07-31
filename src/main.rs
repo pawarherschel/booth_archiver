@@ -5,7 +5,7 @@ use std::io::Write;
 use rayon::prelude::*;
 use scraper::Html;
 
-use booth_archiver::api_structs::items::Root;
+use booth_archiver::api_structs::items::ItemApiResponse;
 use booth_archiver::models::booth_scrapper::*;
 use booth_archiver::models::web_scrapper::WebScraper;
 use booth_archiver::time_it;
@@ -54,7 +54,7 @@ fn main() {
 
     let all_items = all_item_json
         .iter()
-        .filter_map(|s| match serde_json::from_str::<Root>(s) {
+        .filter_map(|s| match serde_json::from_str::<ItemApiResponse>(s) {
             Ok(root) => Some(root),
             Err(e) => {
                 errors.push(e.to_string());

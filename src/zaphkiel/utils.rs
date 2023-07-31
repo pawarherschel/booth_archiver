@@ -4,7 +4,7 @@ use std::io::Write;
 
 use indicatif::{ProgressBar, ProgressStyle};
 
-use crate::api_structs::items::Root;
+use crate::api_structs::items::ItemApiResponse;
 
 pub fn get_pb(len: u64) -> ProgressBar {
     let pb = ProgressBar::new(len);
@@ -19,7 +19,7 @@ pub fn get_pb(len: u64) -> ProgressBar {
     pb
 }
 
-pub fn unneeded_values(all_items: &Vec<Root>) {
+pub fn unneeded_values(all_items: &Vec<ItemApiResponse>) {
     // pub factory_description: Option<Value>,
     // pub order: Option<Value>,
     // pub tracks: Option<Value>,

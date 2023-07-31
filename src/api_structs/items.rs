@@ -3,7 +3,7 @@ use serde_json::Value;
 
 // TODO: when the files are generated, remove the unneeded serde_json::Value slowly and convert it to actual struct
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct Root {
+pub struct ItemApiResponse {
     pub description: String,
     pub factory_description: Option<Value>,
     pub id: i64,
