@@ -1,31 +1,24 @@
-use indicatif::ParallelProgressIterator;
+use fs::File;
+use std::fs;
+use std::io::Write;
+
 use rayon::prelude::*;
 use scraper::Html;
 
+use booth_archiver::api_structs::items::Root;
 use booth_archiver::models::booth_scrapper::*;
 use booth_archiver::models::web_scrapper::WebScraper;
-use booth_archiver::temp::testing_urls::TESTING_URLS;
 use booth_archiver::time_it;
 use booth_archiver::zaphkiel::lazy_statics::*;
-use booth_archiver::zaphkiel::static_strs::BASE_BOOTH_ITEM_URL;
-use booth_archiver::zaphkiel::utils::get_pb;
+use booth_archiver::zaphkiel::utils::{
+    check_if_the_unneeded_files_are_generated_and_panic_if_they_do, unneeded_values,
+};
 
 /// TODO: make it so the cache location is separate for every class of url, eg: wishlist pages, item pages, images, etc.
 /// TODO: cache the images
 /// TODO: use the fucking api dumbass: format!("https://booth.pm/en/items/{}.json", item_id)
 fn main() {
     let start = std::time::Instant::now();
-    // test area
-
-    dbg!(CLIENT.get_one(format!("https://booth.pm/en/items/{}.json", 1903612)))
-        .expect("TODO: panic message");
-
-    panic!();
-
-    let page = Html::parse_document(&CLIENT.get_one(TESTING_URLS[0].to_string()).unwrap());
-    let info = extract_item_data_from_item_page(&page).unwrap();
-
-    // test area over
     let client = time_it!(at once | "creating client" =>
         WebScraper::new(COOKIE.to_string(), true)
     );
@@ -47,31 +40,45 @@ fn main() {
         all_item_numbers
     });
 
-    let all_item_pages_urls = all_item_numbers
+    let all_items_json_url = all_item_numbers
         .iter()
-        .map(|item_number| format!("{}{}", BASE_BOOTH_ITEM_URL, item_number))
+        .map(|id| format!("https://booth.pm/en/items/{}.json", id))
         .collect::<Vec<_>>();
 
-    println!("number of items = {}", all_item_numbers.len());
+    let all_item_json = time_it!(at once | "getting all items json" => {
+        client.get_many(all_items_json_url).iter().flatten().map(|s|s.to_owned()).collect::<Vec<_>>()
+    });
 
-    let all_items = time_it!(at once | "downloading all item pages" =>
-        get_items(&client, all_item_numbers)
-    );
+    let mut errors = Vec::new();
+    let mut error_json = Vec::new();
+
+    let all_items = all_item_json
+        .iter()
+        .filter_map(|s| match serde_json::from_str::<Root>(s) {
+            Ok(root) => Some(root),
+            Err(e) => {
+                errors.push(e.to_string());
+                error_json.push(s.to_owned());
+                None
+            }
+        })
+        .collect::<Vec<_>>();
+
+    println!("number of successes: {}", all_items.len());
+    println!("number of errors: {}", errors.len());
+
+    if !errors.is_empty() {
+        let mut error_file = File::create("errors.json").unwrap();
+        let mut error_json = error_json.join(",");
+        error_json.insert(0, '[');
+        error_json.push(']');
+        error_file.write_all(error_json.as_bytes()).unwrap();
+    }
+
+    unneeded_values(&all_items);
+    check_if_the_unneeded_files_are_generated_and_panic_if_they_do();
+
     time_it!("dumping" => client.dump_cache());
-    println!("number of items: {:}", all_items.len());
-
-    let images = time_it!(at once | "extracting images from all items" =>
-        all_item_pages_urls
-            .par_iter()
-            .progress_with(get_pb(all_item_pages_urls.len() as u64))
-            .map(|item| extract_image_urls_from_url(&client, item.clone()))
-            .flatten()
-            .flatten()
-            .collect::<Vec<_>>()
-    );
-
-    println!("number of images: {:}", images.len());
-
     println!("{}", client.get_cache_stats());
     println!("cache misses: {:}", client.get_cache_misses());
     println!("time taken: {:?}", start.elapsed());
