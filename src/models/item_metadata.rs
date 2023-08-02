@@ -67,10 +67,10 @@ impl From<ItemApiResponse> for ItemMetadata {
             NumberWithUnit { number, unit }
         };
         let category = {
-            let subcategory = category.name;
             let subcategory_url = category.url;
-            let category = category.parent.name;
+            let subcategory = category.name;
             let category_url = category.parent.url;
+            let category = category.parent.name;
 
             let category = NameWithUrl {
                 name: category.into(),
@@ -95,7 +95,43 @@ impl From<ItemApiResponse> for ItemMetadata {
                 })
                 .collect::<Vec<_>>()
         };
-        let mut downloads = vec![];
+        let downloads = variations
+            .iter()
+            .map(|variation| {
+                let name = variation.name.unwrap_or_default();
+                let price = variation.price;
+                let price = NumberWithUnit {
+                    number: price.try_into().unwrap_or_else(|e| {
+                        panic!(
+                            "Unable to convert price from {} to f64 because of {}",
+                            variation.price, e
+                        )
+                    }),
+                    unit: "IDK".into(),
+                };
+                let format = variation
+                    .downloadable
+                    .iter()
+                    .map(|downloadable| {
+                        downloadable.no_musics.iter().map(|no_music| NameWithUrl {
+                            name: todo!(),
+                            url: todo!(),
+                        })
+                    })
+                    .collect();
+
+                DownloadInfo {
+                    name,
+                    price,
+                    variation,
+                    format,
+                    size,
+                }
+            })
+            .collect();
+        for variation in variations {
+            let name = variation.name;
+        }
         ItemMetadata {
             item,
             author,
@@ -122,7 +158,7 @@ pub struct CategoryInfo {
 
 #[derive(Debug, Default, Clone)]
 pub struct DownloadInfo {
-    pub names: NameWithUrl,
+    pub name: NameWithUrl,
     pub price: NumberWithUnit,
     pub variation: Option<NameWithTranslation>,
     pub format: Option<String>,
