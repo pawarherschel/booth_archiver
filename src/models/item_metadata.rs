@@ -1,6 +1,8 @@
+use serde::{Deserialize, Serialize};
+
 use crate::api_structs::items::ItemApiResponse;
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct ItemMetadata {
     pub item: ItemInfo,
     pub author: NameWithUrl,
@@ -89,7 +91,8 @@ impl From<ItemApiResponse> for ItemMetadata {
             images
                 .into_iter()
                 .map(|image| {
-                    let name = image.caption.unwrap_or_default().into();
+                    let name = image.caption.unwrap_or_default().to_string();
+                    let name = name.into();
                     let url = image.original;
                     NameWithUrl { name, url }
                 })
@@ -98,7 +101,11 @@ impl From<ItemApiResponse> for ItemMetadata {
         let downloads = variations
             .iter()
             .map(|variation| {
-                let name = variation.name.unwrap_or_default();
+                let name = variation.name.clone().unwrap_or_default().into();
+                let name = NameWithUrl {
+                    name,
+                    url: variation.order_url.clone().unwrap_or_default().to_string(),
+                };
                 let price = variation.price;
                 let price = NumberWithUnit {
                     number: price.try_into().unwrap_or_else(|e| {
@@ -113,25 +120,68 @@ impl From<ItemApiResponse> for ItemMetadata {
                     .downloadable
                     .iter()
                     .map(|downloadable| {
-                        downloadable.no_musics.iter().map(|no_music| NameWithUrl {
-                            name: todo!(),
-                            url: todo!(),
-                        })
-                    })
-                    .collect();
+                        downloadable
+                            .no_musics
+                            .iter()
+                            .map(|no_music| {
+                                let name = no_music.name.clone().into();
+                                let url = no_music.url.clone();
 
+                                NameWithUrl { name, url }
+                            })
+                            .collect::<Vec<_>>()
+                    })
+                    .collect::<Vec<_>>();
+                let mut ff = vec![];
+                for f in format {
+                    if !f.is_empty() {
+                        let fff = f.clone();
+                        for f in fff {
+                            ff.push(f);
+                        }
+                    }
+                }
+
+                let mut format = None;
+
+                if let Some(val) = ff.first() {
+                    format = Some(val.name.name.clone());
+                } else {
+                    format = None;
+                }
+
+                let size = Some({
+                    let size = variation
+                        .downloadable
+                        .clone()
+                        .unwrap()
+                        .no_musics
+                        .first()
+                        .unwrap()
+                        .file_size
+                        .clone();
+                    let size = size.split(' ').collect::<Vec<_>>();
+                    let number = size.first().unwrap().parse::<f64>().unwrap_or_else(|e| {
+                        panic!(
+                            "Unable to convert size from {} to f64 because of {}",
+                            size.first().unwrap(),
+                            e
+                        )
+                    });
+                    let unit = size.last().unwrap().to_string();
+
+                    NumberWithUnit { number, unit }
+                });
                 DownloadInfo {
                     name,
                     price,
-                    variation,
+                    variation: None,
                     format,
                     size,
                 }
             })
             .collect();
-        for variation in variations {
-            let name = variation.name;
-        }
+
         ItemMetadata {
             item,
             author,
@@ -144,19 +194,19 @@ impl From<ItemApiResponse> for ItemMetadata {
     }
 }
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct ItemInfo {
     pub name: NameWithUrl,
     pub id: u32,
 }
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct CategoryInfo {
     pub category: NameWithUrl,
     pub subcategory: NameWithUrl,
 }
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct DownloadInfo {
     pub name: NameWithUrl,
     pub price: NumberWithUnit,
@@ -165,7 +215,7 @@ pub struct DownloadInfo {
     pub size: Option<NumberWithUnit>,
 }
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct NameWithTranslation {
     pub name: String,
     pub name_translated: String,
@@ -180,7 +230,7 @@ impl Into<NameWithTranslation> for String {
     }
 }
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct NameWithUrl {
     pub name: NameWithTranslation,
     pub url: String,
@@ -192,13 +242,13 @@ impl NameWithUrl {
     }
 }
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct Badges {
     pub vrchat: bool,
     pub adult: bool,
 }
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct NumberWithUnit {
     pub number: f64,
     pub unit: String,

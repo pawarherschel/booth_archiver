@@ -135,7 +135,7 @@ pub struct Variation {
     pub is_waiting_on_arrival: bool,
     pub name: Option<String>,
     pub order_url: Option<Value>,
-    pub price: i64,
+    pub price: f64,
     pub small_stock: Option<i64>,
     pub status: String,
     #[serde(rename = "type")]

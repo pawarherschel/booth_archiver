@@ -1,12 +1,14 @@
 use fs::File;
 use std::fs;
 use std::io::Write;
+use std::path::Path;
 
 use rayon::prelude::*;
 use scraper::Html;
 
 use booth_archiver::api_structs::items::ItemApiResponse;
 use booth_archiver::models::booth_scrapper::*;
+use booth_archiver::models::item_metadata::ItemMetadata;
 use booth_archiver::models::web_scrapper::WebScraper;
 use booth_archiver::time_it;
 use booth_archiver::zaphkiel::lazy_statics::*;
@@ -77,6 +79,17 @@ fn main() {
 
     unneeded_values(&all_items);
     check_if_the_unneeded_files_are_generated_and_panic_if_they_do();
+
+    let all_items: Vec<ItemMetadata> = all_items
+        .iter()
+        .map(|x| ItemMetadata::from(x.clone()))
+        .collect();
+
+    let output_path = Path::new("temp/items.ron");
+
+    let mut file = File::create(output_path).unwrap();
+    let all_items = ron::ser::to_string_pretty(&all_items, Default::default()).unwrap();
+    file.write_all(all_items.as_bytes()).unwrap();
 
     time_it!("dumping" => client.dump_cache());
     println!("{}", client.get_cache_stats());
