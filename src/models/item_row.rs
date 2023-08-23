@@ -1,5 +1,3 @@
-use rust_xlsxwriter::Url;
-
 use crate::models::item_metadata::ItemMetadata;
 
 // Item Name	Item Name Translated	Item Link	Author Name	Author Name Translated	Author Link
@@ -12,10 +10,10 @@ use crate::models::item_metadata::ItemMetadata;
 pub struct ItemRow {
     pub item_name: String,
     pub item_name_translated: String,
-    pub item_link: Url,
+    pub item_link: String,
     pub author_name: String,
     pub author_name_translated: String,
-    pub author_link: Url,
+    pub author_link: String,
     pub primary_category: String,
     pub secondary_category: String,
     pub vrchat: bool,
@@ -23,10 +21,10 @@ pub struct ItemRow {
     pub price: f64,
     pub currency: String,
     pub hearts: u32,
-    pub image_numbers: u32,
-    pub image_urls: Vec<Url>,
-    pub downloads_number: u32,
-    pub downloads_links: Vec<Url>,
+    // pub image_numbers: u32,
+    pub image_urls: Vec<String>,
+    // pub downloads_number: u32,
+    pub downloads_links: Vec<String>,
     pub markdown: String,
 }
 
@@ -54,10 +52,10 @@ impl From<ItemMetadata> for ItemRow {
         ItemRow {
             item_name,
             item_name_translated,
-            item_link: Url::new(item_link),
+            item_link,
             author_name,
             author_name_translated,
-            author_link: Url::new(author_link),
+            author_link,
             primary_category,
             secondary_category,
             vrchat,
@@ -65,10 +63,11 @@ impl From<ItemMetadata> for ItemRow {
             price,
             currency,
             hearts,
-            image_numbers: 0,
+            // TODO
             image_urls: vec![],
-            downloads_number: 0,
+            // TODO
             downloads_links: vec![],
+            // TODO
             markdown: "".to_string(),
         }
     }
