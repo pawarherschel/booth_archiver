@@ -11,6 +11,8 @@ pub struct ItemMetadata {
     pub category: CategoryInfo,
     pub images: Vec<NameWithUrl>,
     pub downloads: Vec<DownloadInfo>,
+    pub badges: Badges,
+    pub description: String,
 }
 
 impl ItemMetadata {
@@ -150,33 +152,12 @@ impl From<ItemApiResponse> for ItemMetadata {
                     format = None;
                 }
 
-                // let size = Some({
-                //     let size = variation
-                //         .downloadable
-                //         .clone()
-                //         .unwrap()
-                //         .no_musics
-                //         .first()
-                //         .unwrap()
-                //         .file_size
-                //         .clone();
-                //     let size = size.split(' ').collect::<Vec<_>>();
-                //     let number = size.first().unwrap().parse::<f64>().unwrap_or_else(|e| {
-                //         panic!(
-                //             "Unable to convert size from {} to f64 because of {}",
-                //             size.first().unwrap(),
-                //             e
-                //         )
-                //     });
-                //     let unit = size.last().unwrap().to_string();
-                //
-                //     NumberWithUnit { number, unit }
-                // });
                 DownloadInfo {
                     name,
                     price,
                     variation: None,
                     format,
+                    // TODO
                     size: None,
                 }
             })
@@ -190,6 +171,10 @@ impl From<ItemApiResponse> for ItemMetadata {
             category,
             images,
             downloads,
+            // TODO
+            badges: Default::default(),
+            // TODO
+            description: "".to_string(),
         }
     }
 }
