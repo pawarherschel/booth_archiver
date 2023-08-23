@@ -16,7 +16,7 @@ use booth_archiver::zaphkiel::lazy_statics::*;
 use booth_archiver::zaphkiel::utils::{
     check_if_the_unneeded_files_are_generated_and_panic_if_they_do, unneeded_values,
 };
-use booth_archiver::zaphkiel::xlsx::write_row;
+use booth_archiver::zaphkiel::xlsx::{write_headers, write_row};
 
 /// TODO: make it so the cache location is separate for every class of url, eg: wishlist pages, item pages, images, etc.
 /// TODO: cache the images
@@ -95,41 +95,16 @@ fn main() {
 
     let mut workbook = time_it!("Creating a new Workbook" => Workbook::new());
     let worksheet = time_it!("Adding worksheet" => workbook.add_worksheet());
-    // Item Name	Item Name Translated	Item Link	Author Name	Author Name Translated	Author Link
-    // Category	VRChat Badge	Adult Badge	Price	Currency	Wish List Count
-    // Images Number	Image URLs	Downloads Number
-    // Downloads Dict	Download Links	Download Names	Download Variations
-    // Download Formats	Download Sizes	Download Units	Description Markdown
     time_it!("writing col names" => {
-        worksheet.write(0, 0, "Item Name").unwrap();
-        worksheet.write(0, 1, "Item Name Translated").unwrap();
-        worksheet.write(0, 2, "Item Link").unwrap();
-        worksheet.write(0, 3, "Author Name").unwrap();
-        worksheet.write(0, 4, "Author Name Translated").unwrap();
-        worksheet.write(0, 5, "Author Link").unwrap();
-        worksheet.write(0, 6, "Category").unwrap();
-        worksheet.write(0, 7, "VRChat Badge").unwrap();
-        worksheet.write(0, 8, "Adult Badge").unwrap();
-        worksheet.write(0, 9, "Price").unwrap();
-        worksheet.write(0, 10, "Currency").unwrap();
-        worksheet.write(0, 11, "Wishlist Count").unwrap();
-        worksheet.write(0, 12, "Images Number").unwrap();
-        worksheet.write(0, 13, "Images URLs").unwrap();
-        worksheet.write(0, 14, "Downloads Numbers").unwrap();
-        worksheet.write(0, 15, "Downloads Dict").unwrap();
-        worksheet.write(0, 16, "Downloads Links").unwrap();
-        worksheet.write(0, 17, "Downloads Names").unwrap();
-        worksheet.write(0, 18, "Downloads Variations").unwrap();
-        worksheet.write(0, 19, "Downloads Formats").unwrap();
-        worksheet.write(0, 20, "Downloads Sizes").unwrap();
-        worksheet.write(0, 21, "Downloads Units").unwrap();
-        worksheet.write(0, 22, "Downloads Markdown").unwrap();
+        write_headers(worksheet).unwrap();
     });
 
     time_it!("Writing Data" => {
-        for (idx, item) in all_items.iter().enumerate() {
-            write_row(item, worksheet, idx as u32 + 1).unwrap();
-        }
+        all_items
+            .iter()
+            .map(|item| item.to_owned().into())
+            .enumerate()
+            .for_each(|(idx, item)| write_row(&item, worksheet, idx as u32 + 1).unwrap());
     });
 
     time_it!("saving workbook" => workbook.save("temp/book.xlsx").unwrap());
