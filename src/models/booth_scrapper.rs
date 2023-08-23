@@ -119,9 +119,9 @@ pub fn extract_image_urls_from_item_page(document: &Html) -> Option<Vec<String>>
         .select(&selector)
         .filter_map(|img| {
             img.value()
-                .attrs()
-                .find(|(k, _)| *k == "data-origin")
-                .map(|(_, v)| v.to_string())
+               .attrs()
+               .find(|(k, _)| *k == "data-origin")
+               .map(|(_, v)| v.to_string())
         })
         .collect::<Vec<_>>();
 
