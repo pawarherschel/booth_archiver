@@ -101,4 +101,9 @@ impl WebScraper {
             .collect::<Vec<_>>();
         htmls
     }
+
+    #[allow(clippy::result_large_err)]
+    pub fn get_json(&self, _url: String) -> Result<String, ureq::Error> {
+        todo!()
+    }
 }
