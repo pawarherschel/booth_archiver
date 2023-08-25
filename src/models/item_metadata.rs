@@ -100,6 +100,7 @@ impl From<ItemApiResponse> for ItemMetadata {
                 })
                 .collect::<Vec<_>>()
         };
+
         let downloads = variations
             .iter()
             .flat_map(|variation| {
@@ -114,13 +115,10 @@ impl From<ItemApiResponse> for ItemMetadata {
             .flatten()
             .map(|url| DownloadInfo {
                 name: NameWithUrl {
-                    name: NameWithTranslation {
-                        name: "Download".to_string(),
-                        name_translated: "".to_string(),
-                    },
+                    name: NameWithTranslation::default(),
                     url: url.clone(),
                 },
-                price: NumberWithUnit::new(0.0, "jpy".into()),
+                price: NumberWithUnit::default(),
                 variation: None,
                 format: None,
                 size: None,

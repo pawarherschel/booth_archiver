@@ -1,16 +1,15 @@
 use fs::File;
 use std::fs;
-use std::io::Write;
 use std::path::Path;
+use std::time::Instant;
 
 use rayon::prelude::*;
-use rust_xlsxwriter::Workbook;
+use rust_xlsxwriter::{Workbook, XlsxError};
 use scraper::Html;
 
 use booth_archiver::api_structs::items::ItemApiResponse;
 use booth_archiver::models::booth_scrapper::*;
 use booth_archiver::models::item_metadata::ItemMetadata;
-use booth_archiver::models::web_scrapper::WebScraper;
 use booth_archiver::time_it;
 use booth_archiver::zaphkiel::lazy_statics::*;
 use booth_archiver::zaphkiel::utils::{
@@ -19,13 +18,10 @@ use booth_archiver::zaphkiel::utils::{
 use booth_archiver::zaphkiel::xlsx::{write_headers, write_row};
 
 fn main() {
-    let start = std::time::Instant::now();
-    let client = time_it!(at once | "creating client" =>
-        WebScraper::new(COOKIE.to_string(), true)
-    );
+    let start: Instant = Instant::now();
 
-    let wishlist_pages = time_it!(at once | "getting wishlist pages" =>{
-            let pages = get_all_wishlist_pages(&client);
+    let wishlist_pages: Vec<String> = time_it!(at once | "getting wishlist pages" => {
+            let pages = get_all_wishlist_pages(&CLIENT);
             println!("number of pages = {}", pages.len());
             pages
         }
@@ -47,7 +43,12 @@ fn main() {
         .collect::<Vec<_>>();
 
     let all_item_json = time_it!(at once | "getting all items json" => {
-        client.get_many(all_items_json_url).par_iter().flatten().map(|s|s.to_owned()).collect::<Vec<_>>()
+        CLIENT
+            .get_many(all_items_json_url)
+            .par_iter()
+            .flatten()
+            .cloned()
+            .collect::<Vec<_>>()
     });
 
     let mut errors = Vec::new();
@@ -69,45 +70,55 @@ fn main() {
     println!("number of errors: {}", errors.len());
 
     if !errors.is_empty() {
-        let mut error_file = File::create("errors.json").unwrap();
-        let mut error_json = error_json.join(",");
-        error_json.insert(0, '[');
-        error_json.push(']');
-        error_file.write_all(error_json.as_bytes()).unwrap();
+        time_it!(at once | "writing errors to file" => {
+            let mut error_file = File::create("errors.json").unwrap();
+            let mut error_json = error_json.join(",");
+            error_json.insert(0, '[');
+            error_json.push(']');
+            error_file.write_all(error_json.as_bytes()).unwrap();
+        });
     }
 
     unneeded_values(&all_items);
     check_if_the_unneeded_files_are_generated_and_panic_if_they_do();
 
-    let all_items: Vec<ItemMetadata> = all_items
+    let all_items = all_items
         .par_iter()
         .map(|x| ItemMetadata::from(x.clone()))
-        .collect();
+        .collect::<Vec<ItemMetadata>>();
 
-    let output_path = Path::new("temp/items.ron");
+    time_it!(at once | "writing items to file" => {
+        let output_path = Path::new("temp/items.ron");
 
-    let mut file = File::create(output_path).unwrap();
-    let all_items_pretty = ron::ser::to_string_pretty(&all_items, Default::default()).unwrap();
-    file.write_all(all_items_pretty.as_bytes()).unwrap();
-
-    let mut workbook = time_it!("Creating a new Workbook" => Workbook::new());
-    let worksheet = time_it!("Adding worksheet" => workbook.add_worksheet());
-    time_it!("writing col names" => {
-        write_headers(worksheet).unwrap();
+        let mut file = File::create(output_path).unwrap();
+        let all_items_pretty = ron::ser::to_string_pretty(&all_items, Default::default()).unwrap();
+        file.write_all(all_items_pretty.as_bytes()).unwrap();
     });
 
-    time_it!("Writing Data" => {
+    time_it!(at once | "writing items to xlsx" => {
+        let mut workbook = Workbook::new();
+        let worksheet = workbook.add_worksheet();
+
+        write_headers(worksheet).unwrap();
+
         all_items
             .iter()
             .map(|item| item.to_owned().into())
             .enumerate()
             .for_each(|(idx, item)| write_row(&item, worksheet, idx as u32 + 1).unwrap());
+
+        match workbook.save("temp/book.xlsx") {
+            Ok(_) => println!("saved"),
+            Err(e) => match e {
+                XlsxError::IoError(e) => println!("io error: {}\n\
+                Did you check if the file is already open in excel?", e),
+                _ => println!("error: {}", e),
+            }
+        };
     });
 
-    time_it!("saving workbook" => workbook.save("temp/book.xlsx").unwrap());
-
-    time_it!("dumping" => client.dump_cache());
-    println!("{}", client.get_cache_stats());
-    println!("cache misses: {:}", client.get_cache_misses());
+    time_it!("dumping" => CLIENT.dump_cache());
+    println!("{}", CLIENT.get_cache_stats());
+    println!("cache misses: {:}", CLIENT.get_cache_misses());
     println!("time taken: {:?}", start.elapsed());
 }
