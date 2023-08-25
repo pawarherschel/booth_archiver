@@ -21,9 +21,7 @@ pub struct ItemRow {
     pub price: f64,
     pub currency: String,
     pub hearts: u32,
-    // pub image_numbers: u32,
     pub image_urls: Vec<String>,
-    // pub downloads_number: u32,
     pub downloads_links: Vec<String>,
     pub markdown: String,
 }
@@ -41,13 +39,23 @@ impl From<ItemMetadata> for ItemRow {
         let primary_category = value.category.category.name.name;
         let secondary_category = value.category.subcategory.name.name;
 
-        let vrchat = false;
-        let adult = false;
+        let vrchat = value.badges.vrchat;
+        let adult = value.badges.adult;
 
         let price = value.price.number;
         let currency = value.price.unit;
 
         let hearts = value.hearts;
+
+        let image_urls = value.images.iter().map(|image| image.url.clone()).collect();
+
+        let downloads_links = value
+            .downloads
+            .iter()
+            .map(|download| download.name.url.clone())
+            .collect();
+
+        let markdown = value.description;
 
         ItemRow {
             item_name,
@@ -63,12 +71,9 @@ impl From<ItemMetadata> for ItemRow {
             price,
             currency,
             hearts,
-            // TODO
-            image_urls: vec![],
-            // TODO
-            downloads_links: vec![],
-            // TODO
-            markdown: "".to_string(),
+            image_urls,
+            downloads_links,
+            markdown,
         }
     }
 }

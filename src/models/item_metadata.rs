@@ -102,66 +102,40 @@ impl From<ItemApiResponse> for ItemMetadata {
         };
         let downloads = variations
             .iter()
-            .map(|variation| {
-                let name = variation.name.clone().unwrap_or_default().into();
-                let name = NameWithUrl {
-                    name,
-                    url: variation.order_url.clone().unwrap_or_default().to_string(),
-                };
-                let price = variation.price;
-                let price = NumberWithUnit {
-                    number: price.try_into().unwrap_or_else(|e| {
-                        panic!(
-                            "Unable to convert price from {} to f64 because of {}",
-                            variation.price, e
-                        )
-                    }),
-                    unit: "IDK".into(),
-                };
-                let format = variation
-                    .downloadable
-                    .iter()
-                    .map(|downloadable| {
-                        downloadable
-                            .no_musics
-                            .iter()
-                            .map(|no_music| {
-                                let name = no_music.name.clone().into();
-                                let url = no_music.url.clone();
-
-                                NameWithUrl { name, url }
-                            })
-                            .collect::<Vec<_>>()
-                    })
-                    .collect::<Vec<_>>();
-                let mut ff = vec![];
-                for f in format {
-                    if !f.is_empty() {
-                        let fff = f.clone();
-                        for f in fff {
-                            ff.push(f);
-                        }
-                    }
-                }
-
-                let mut format = None;
-
-                if let Some(val) = ff.first() {
-                    format = Some(val.name.name.clone());
-                } else {
-                    format = None;
-                }
-
-                DownloadInfo {
-                    name,
-                    price,
-                    variation: None,
-                    format,
-                    // TODO
-                    size: None,
-                }
+            .flat_map(|variation| {
+                variation.downloadable.iter().map(|downloadable| {
+                    downloadable
+                        .no_musics
+                        .iter()
+                        .map(|download| download.url.clone())
+                        .collect::<Vec<_>>()
+                })
             })
-            .collect();
+            .flatten()
+            .map(|url| DownloadInfo {
+                name: NameWithUrl {
+                    name: NameWithTranslation {
+                        name: "Download".to_string(),
+                        name_translated: "".to_string(),
+                    },
+                    url: url.clone(),
+                },
+                price: NumberWithUnit::new(0.0, "jpy".into()),
+                variation: None,
+                format: None,
+                size: None,
+            })
+            .collect::<Vec<_>>();
+
+        let badges = {
+            let adult = value.is_adult;
+
+            let vrchat = value.tags.iter().any(|tag| tag.name == "VRChat");
+
+            Badges { vrchat, adult }
+        };
+
+        let description = value.description;
 
         ItemMetadata {
             item,
@@ -171,10 +145,8 @@ impl From<ItemApiResponse> for ItemMetadata {
             category,
             images,
             downloads,
-            // TODO
-            badges: Default::default(),
-            // TODO
-            description: "".to_string(),
+            badges,
+            description,
         }
     }
 }
