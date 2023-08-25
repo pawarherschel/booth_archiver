@@ -45,12 +45,12 @@ fn main() {
     });
 
     let all_items_json_url = all_item_numbers
-        .iter()
+        .par_iter()
         .map(|id| format!("https://booth.pm/en/items/{}.json", id))
         .collect::<Vec<_>>();
 
     let all_item_json = time_it!(at once | "getting all items json" => {
-        client.get_many(all_items_json_url).iter().flatten().map(|s|s.to_owned()).collect::<Vec<_>>()
+        client.get_many(all_items_json_url).par_iter().flatten().map(|s|s.to_owned()).collect::<Vec<_>>()
     });
 
     let mut errors = Vec::new();
@@ -83,7 +83,7 @@ fn main() {
     check_if_the_unneeded_files_are_generated_and_panic_if_they_do();
 
     let all_items: Vec<ItemMetadata> = all_items
-        .iter()
+        .par_iter()
         .map(|x| ItemMetadata::from(x.clone()))
         .collect();
 
