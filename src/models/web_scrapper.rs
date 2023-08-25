@@ -74,6 +74,7 @@ impl WebScraper {
     }
 
     /// Get a single page.
+    #[allow(clippy::result_large_err)]
     pub fn get_one(&self, url: String) -> Result<String, ureq::Error> {
         if let Some(html) = self.cache.clone().read().unwrap().get(&url) {
             return Ok(html);

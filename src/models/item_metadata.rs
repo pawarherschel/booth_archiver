@@ -178,11 +178,11 @@ pub struct NameWithTranslation {
     pub name_translated: String,
 }
 
-impl Into<NameWithTranslation> for String {
-    fn into(self) -> NameWithTranslation {
+impl From<String> for NameWithTranslation {
+    fn from(val: String) -> Self {
         NameWithTranslation {
-            name: self.clone(),
-            name_translated: self,
+            name: val.clone(),
+            name_translated: val,
         }
     }
 }

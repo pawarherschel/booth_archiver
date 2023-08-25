@@ -18,9 +18,6 @@ use booth_archiver::zaphkiel::utils::{
 };
 use booth_archiver::zaphkiel::xlsx::{write_headers, write_row};
 
-/// TODO: make it so the cache location is separate for every class of url, eg: wishlist pages, item pages, images, etc.
-/// TODO: cache the images
-/// TODO: use the fucking api dumbass: format!("https://booth.pm/en/items/{}.json", item_id)
 fn main() {
     let start = std::time::Instant::now();
     let client = time_it!(at once | "creating client" =>

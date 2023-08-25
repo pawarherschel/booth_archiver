@@ -1,11 +1,5 @@
 use crate::models::item_metadata::ItemMetadata;
 
-// Item Name	Item Name Translated	Item Link	Author Name	Author Name Translated	Author Link
-// Category	VRChat Badge	Adult Badge	Price	Currency	Wish List Count
-// Images Number	Image URLs	Downloads Number
-// Downloads Dict	Download Links	Download Names	Download Variations
-// Download Formats	Download Sizes	Download Units	Description Markdown
-
 #[derive(Clone, Default, Debug)]
 pub struct ItemRow {
     pub item_name: String,

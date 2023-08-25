@@ -19,7 +19,7 @@ pub fn get_pb(len: u64) -> ProgressBar {
     pb
 }
 
-pub fn unneeded_values(all_items: &Vec<ItemApiResponse>) {
+pub fn unneeded_values(all_items: &[ItemApiResponse]) {
     // pub factory_description: Option<Value>,
     // pub order: Option<Value>,
     // pub tracks: Option<Value>,
@@ -233,20 +233,6 @@ pub fn unneeded_values(all_items: &Vec<ItemApiResponse>) {
             .unwrap();
     }
 
-    // // // pub variations: Vec<Variation>,
-    // // Variation {
-    // //     pub downloadable: Option<Downloadable>,
-    // // }
-    // Downloadable {
-    //     pub musics: Option<Vec<Value>>,
-    // }
-
-    let files_where_variations_is_not_empty = all_items
-        .iter()
-        .filter(|root| !root.variations.is_empty())
-        .flat_map(|root| root.variations.clone())
-        .collect::<Vec<_>>();
-
     let downloadable_in_variations = files_where_variations_is_not_empty
         .iter()
         .filter(|variation| variation.downloadable.is_some())
@@ -294,7 +280,7 @@ pub fn check_if_the_unneeded_files_are_generated_and_panic_if_they_do() {
     // order_urls_in_variations.json
     // musics_in_downloadable.json
 
-    let mut files = vec![
+    let files = vec![
         "factory_description.json",
         "order.json",
         "tracks.json",
