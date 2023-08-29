@@ -12,7 +12,6 @@ pub mod zaphkiel {
     pub mod macros;
     pub mod static_strs;
     pub mod utils;
-    pub mod worker;
     pub mod xlsx;
 }
 
