@@ -74,6 +74,7 @@ pub struct Parent {
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Image {
+    // never used so far lol
     pub caption: Option<Value>,
     pub original: String,
     pub resized: String,

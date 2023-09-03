@@ -27,7 +27,7 @@ fn main() {
         }
     );
 
-    let all_item_numbers = time_it!(at once | "extracting items from pages" => {
+    let all_item_numbers = time_it!(at once | "extracting item numbers from pages" => {
         let mut all_item_numbers = Vec::new();
         for page in wishlist_pages {
             let page = Html::parse_document(&page);
@@ -66,6 +66,21 @@ fn main() {
         })
         .collect::<Vec<_>>();
 
+    time_it!(at once | "writing items to file" => {
+        let output_path = Path::new("temp/items.ron");
+
+        let mut file = File::create(output_path).unwrap();
+        let all_items_pretty = ron::ser::to_string_pretty(&all_items, Default::default()).unwrap();
+        file.write_all(all_items_pretty.as_bytes()).unwrap();
+    });
+    time_it!(at once | "writing items to file" => {
+        let output_path = Path::new("temp/items.json");
+
+        let mut file = File::create(output_path).unwrap();
+        let all_items_pretty = serde_json::to_string_pretty(&all_items).unwrap();
+        file.write_all(all_items_pretty.as_bytes()).unwrap();
+    });
+
     println!("number of successes: {}", all_items.len());
     println!("number of errors: {}", errors.len());
 
@@ -79,21 +94,15 @@ fn main() {
         });
     }
 
-    unneeded_values(&all_items);
-    check_if_the_unneeded_files_are_generated_and_panic_if_they_do();
+    time_it!("checking if unneeded values are generated" => {
+        unneeded_values(&all_items);
+        check_if_the_unneeded_files_are_generated_and_panic_if_they_do();
+    });
 
     let all_items = all_items
         .par_iter()
         .map(|x| ItemMetadata::from(x.clone()))
         .collect::<Vec<ItemMetadata>>();
-
-    time_it!(at once | "writing items to file" => {
-        let output_path = Path::new("temp/items.ron");
-
-        let mut file = File::create(output_path).unwrap();
-        let all_items_pretty = ron::ser::to_string_pretty(&all_items, Default::default()).unwrap();
-        file.write_all(all_items_pretty.as_bytes()).unwrap();
-    });
 
     time_it!(at once | "writing items to xlsx" => {
         let mut workbook = Workbook::new();
