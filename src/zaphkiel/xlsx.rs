@@ -14,6 +14,7 @@ enum Headers {
     SecondaryCategory,
     VRChat,
     Adult,
+    Tags,
     Price,
     Currency,
     Hearts,
@@ -37,14 +38,15 @@ impl From<Headers> for ColNum {
             Headers::SecondaryCategory => 7,
             Headers::VRChat => 8,
             Headers::Adult => 9,
-            Headers::Price => 10,
-            Headers::Currency => 11,
-            Headers::Hearts => 12,
-            Headers::ImagesNumber => 13,
-            Headers::ImagesURLs => 14,
-            Headers::DownloadNumber => 15,
-            Headers::DownloadsLinks => 16,
-            Headers::Markdown => 17,
+            Headers::Tags => 10,
+            Headers::Price => 11,
+            Headers::Currency => 12,
+            Headers::Hearts => 13,
+            Headers::ImagesNumber => 14,
+            Headers::ImagesURLs => 15,
+            Headers::DownloadNumber => 16,
+            Headers::DownloadsLinks => 17,
+            Headers::Markdown => 18,
         }
     }
 }
@@ -70,6 +72,7 @@ pub fn write_headers(worksheet: &mut Worksheet) -> Result<(), rust_xlsxwriter::X
     worksheet.write(ROW, Headers::SecondaryCategory.into(), "Secondary Category")?;
     worksheet.write(ROW, Headers::VRChat.into(), "VRChat")?;
     worksheet.write(ROW, Headers::Adult.into(), "Adult")?;
+    worksheet.write(ROW, Headers::Tags.into(), "Tags")?;
     worksheet.write(ROW, Headers::Price.into(), "Price")?;
     worksheet.write(ROW, Headers::Currency.into(), "Currency")?;
     worksheet.write(ROW, Headers::Hearts.into(), "Hearts")?;
@@ -98,11 +101,12 @@ pub fn write_row(
         secondary_category,
         vrchat,
         adult,
+        tags,
         price,
         currency,
         hearts,
         image_urls,
-        downloads_links,
+        download_links: downloads_links,
         markdown,
     } = item.to_owned();
 
@@ -124,6 +128,7 @@ pub fn write_row(
     worksheet.write(row, Headers::SecondaryCategory.into(), secondary_category)?;
     worksheet.write(row, Headers::VRChat.into(), vrchat)?;
     worksheet.write(row, Headers::Adult.into(), adult)?;
+    worksheet.write(row, Headers::Tags.into(), tags.join(", "))?;
     worksheet.write(row, Headers::Price.into(), price)?;
     worksheet.write(row, Headers::Currency.into(), currency)?;
     worksheet.write(row, Headers::Hearts.into(), hearts)?;
