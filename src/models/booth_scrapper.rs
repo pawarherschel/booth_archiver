@@ -34,7 +34,7 @@ pub fn get_all_wishlist_pages(client: &WebScraper) -> Vec<String> {
         .collect::<Vec<_>>();
 
     client
-        .get_many(urls)
+        .get_many(urls, "Getting all wishlist pages")
         .iter()
         .filter_map(|r| r.as_ref().ok())
         .cloned()

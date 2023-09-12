@@ -1,5 +1,3 @@
-use std::path::PathBuf;
-
 use rust_xlsxwriter::{ColNum, Workbook, Worksheet, XlsxError};
 
 use crate::api_structs::items::ItemApiResponse;
@@ -160,7 +158,7 @@ pub fn write_all(worksheet: &mut Worksheet, items: Vec<ItemApiResponse>) {
         .for_each(|(idx, item)| write_row(&item, worksheet, idx as u32 + 1).unwrap());
 }
 
-pub fn save_book(workbook: &mut Workbook, path: PathBuf) {
+pub fn save_book(workbook: &mut Workbook, path: &'static str) {
     match workbook.save(path) {
         Ok(_) => println!("saved"),
         Err(e) => match e {

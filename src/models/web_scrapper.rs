@@ -93,10 +93,14 @@ impl WebScraper {
     }
 
     /// Get multiple pages, in parallel.
-    pub fn get_many(&self, urls: Vec<String>) -> Vec<Result<String, ureq::Error>> {
+    pub fn get_many(
+        &self,
+        urls: Vec<String>,
+        msg: &'static str,
+    ) -> Vec<Result<String, ureq::Error>> {
         let htmls = urls
             .par_iter()
-            .progress_with(get_pb(urls.len() as u64))
+            .progress_with(get_pb(urls.len() as u64, msg))
             .map(|url| self.get_one(url.clone()))
             .collect::<Vec<_>>();
         htmls

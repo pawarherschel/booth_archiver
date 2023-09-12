@@ -1,6 +1,6 @@
 use fs::File;
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::time::Instant;
 
 use indicatif::ParallelProgressIterator;
@@ -10,7 +10,6 @@ use scraper::Html;
 
 use booth_archiver::api_structs::items::ItemApiResponse;
 use booth_archiver::models::booth_scrapper::*;
-// use booth_archiver::models::item_metadata::ItemMetadata;
 use booth_archiver::time_it;
 use booth_archiver::zaphkiel::lazy_statics::*;
 use booth_archiver::zaphkiel::utils::get_pb;
@@ -36,14 +35,12 @@ fn main() {
         all_item_numbers
     });
 
-    let all_items = time_it!("Extracting items" => all_item_numbers
+    let all_items = time_it!(at once | "Extracting items" => all_item_numbers
         .par_iter()
-        .progress_with(get_pb(all_item_numbers.len() as u64))
+        .progress_with(get_pb(all_item_numbers.len() as u64, "Extracting Items"))
         .map(|id| format!("https://booth.pm/en/items/{}.json", id))
-        .map(|url| CLIENT.get_one(url))
-        .filter_map(|item| item.ok())
-        .map(|item| serde_json::from_str::<ItemApiResponse>(&item))
-        .map(|item| item.unwrap())
+        .filter_map(|url| CLIENT.get_one(url).ok())
+        .filter_map(|item| serde_json::from_str::<ItemApiResponse>(&item).ok())
         .collect::<Vec<ItemApiResponse>>()
     );
 
@@ -73,11 +70,7 @@ fn main() {
 
         write_all(worksheet, all_items);
 
-        let mut save_path = PathBuf::new();
-        save_path.push("temp");
-        save_path.push("book.xlsx");
-
-        save_book(&mut workbook, save_path);
+        save_book(&mut workbook, "temp/book.xlsx");
     });
 
     time_it!("dumping" => CLIENT.dump_cache());
