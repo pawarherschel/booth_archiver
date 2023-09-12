@@ -1,5 +1,8 @@
-use rust_xlsxwriter::{ColNum, Worksheet};
+use std::path::PathBuf;
 
+use rust_xlsxwriter::{ColNum, Workbook, Worksheet, XlsxError};
+
+use crate::api_structs::items::ItemApiResponse;
 use crate::models::item_row::ItemRow;
 
 #[derive(Debug, Clone, Copy)]
@@ -147,4 +150,26 @@ pub fn write_row(
     worksheet.write(row, Headers::Markdown.into(), markdown)?;
 
     Ok(())
+}
+
+pub fn write_all(worksheet: &mut Worksheet, items: Vec<ItemApiResponse>) {
+    items
+        .iter()
+        .map(|item| item.to_owned().into())
+        .enumerate()
+        .for_each(|(idx, item)| write_row(&item, worksheet, idx as u32 + 1).unwrap());
+}
+
+pub fn save_book(workbook: &mut Workbook, path: PathBuf) {
+    match workbook.save(path) {
+        Ok(_) => println!("saved"),
+        Err(e) => match e {
+            XlsxError::IoError(e) => println!(
+                "io error: {}\n\
+                Did you check if the file is already open in excel?",
+                e
+            ),
+            _ => println!("error: {}", e),
+        },
+    };
 }

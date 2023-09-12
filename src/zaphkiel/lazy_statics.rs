@@ -12,10 +12,7 @@ lazy_static! {
     /// The cookie for the program.
     pub static ref COOKIE: String = {
         std::fs::read_to_string(
-            CONFIG
-                .cookie_file
-                .as_ref()
-                .expect("failed to build Path from PathBuf"),
+            CONFIG.cookie_file.as_ref().expect("failed to build Path from PathBuf"),
         )
         .unwrap_or_else(|e| {
             panic!(

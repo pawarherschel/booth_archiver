@@ -1,10 +1,11 @@
 use fs::File;
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::time::Instant;
 
+use indicatif::ParallelProgressIterator;
 use rayon::prelude::*;
-use rust_xlsxwriter::{Workbook, XlsxError};
+use rust_xlsxwriter::Workbook;
 use scraper::Html;
 
 use booth_archiver::api_structs::items::ItemApiResponse;
@@ -12,10 +13,8 @@ use booth_archiver::models::booth_scrapper::*;
 // use booth_archiver::models::item_metadata::ItemMetadata;
 use booth_archiver::time_it;
 use booth_archiver::zaphkiel::lazy_statics::*;
-use booth_archiver::zaphkiel::utils::{
-    check_if_the_unneeded_files_are_generated_and_panic_if_they_do, unneeded_values,
-};
-use booth_archiver::zaphkiel::xlsx::{write_headers, write_row};
+use booth_archiver::zaphkiel::utils::get_pb;
+use booth_archiver::zaphkiel::xlsx::{save_book, write_all, write_headers};
 
 fn main() {
     let start: Instant = Instant::now();
@@ -37,43 +36,20 @@ fn main() {
         all_item_numbers
     });
 
-    let all_items_json_url = all_item_numbers
+    let all_items = time_it!("Extracting items" => all_item_numbers
         .par_iter()
+        .progress_with(get_pb(all_item_numbers.len() as u64))
         .map(|id| format!("https://booth.pm/en/items/{}.json", id))
-        .collect::<Vec<_>>();
+        .map(|url| CLIENT.get_one(url))
+        .filter_map(|item| item.ok())
+        .map(|item| serde_json::from_str::<ItemApiResponse>(&item))
+        .map(|item| item.unwrap())
+        .collect::<Vec<ItemApiResponse>>()
+    );
 
-    let all_item_json = time_it!(at once | "getting all items json" => {
-        CLIENT
-            .get_many(all_items_json_url)
-            .par_iter()
-            .flatten()
-            .cloned()
-            .collect::<Vec<_>>()
-    });
+    dbg!(all_items.len());
 
-    let mut errors = Vec::new();
-    let mut error_json = Vec::new();
-
-    let all_items = all_item_json
-        .iter()
-        .filter_map(|s| match serde_json::from_str::<ItemApiResponse>(s) {
-            Ok(root) => Some(root),
-            Err(e) => {
-                errors.push(e.to_string());
-                error_json.push(s.to_owned());
-                None
-            }
-        })
-        .collect::<Vec<_>>();
-
-    time_it!(at once | "writing items to file" => {
-        let output_path = Path::new("temp/items.ron");
-
-        let mut file = File::create(output_path).unwrap();
-        let all_items_pretty = ron::ser::to_string_pretty(&all_items, Default::default()).unwrap();
-        file.write_all(all_items_pretty.as_bytes()).unwrap();
-    });
-    time_it!(at once | "writing items to file" => {
+    time_it!(at once | "writing items to json file" => {
         let output_path = Path::new("temp/items.json");
 
         let mut file = File::create(output_path).unwrap();
@@ -81,49 +57,27 @@ fn main() {
         file.write_all(all_items_pretty.as_bytes()).unwrap();
     });
 
-    println!("number of successes: {}", all_items.len());
-    println!("number of errors: {}", errors.len());
+    time_it!(at once | "writing items to ron file" => {
+        let output_path = Path::new("temp/items.ron");
 
-    if !errors.is_empty() {
-        time_it!(at once | "writing errors to file" => {
-            let mut error_file = File::create("errors.json").unwrap();
-            let mut error_json = error_json.join(",");
-            error_json.insert(0, '[');
-            error_json.push(']');
-            error_file.write_all(error_json.as_bytes()).unwrap();
-        });
-    }
-
-    time_it!("checking if unneeded values are generated" => {
-        unneeded_values(&all_items);
-        check_if_the_unneeded_files_are_generated_and_panic_if_they_do();
+        let mut file = File::create(output_path).unwrap();
+        let all_items_pretty = ron::ser::to_string_pretty(&all_items, Default::default()).unwrap();
+        file.write_all(all_items_pretty.as_bytes()).unwrap();
     });
 
-    // let all_items = all_items
-    //     .par_iter()
-    //     .map(|x| ItemMetadata::from(x.clone()))
-    //     .collect::<Vec<ItemMetadata>>();
-
     time_it!(at once | "writing items to xlsx" => {
-        let mut workbook = Workbook::new();
+        let mut workbook= Workbook::new();
         let worksheet = workbook.add_worksheet();
 
         write_headers(worksheet).unwrap();
 
-        all_items
-            .iter()
-            .map(|item| item.to_owned().into())
-            .enumerate()
-            .for_each(|(idx, item)| write_row(&item, worksheet, idx as u32 + 1).unwrap());
+        write_all(worksheet, all_items);
 
-        match workbook.save("temp/book.xlsx") {
-            Ok(_) => println!("saved"),
-            Err(e) => match e {
-                XlsxError::IoError(e) => println!("io error: {}\n\
-                Did you check if the file is already open in excel?", e),
-                _ => println!("error: {}", e),
-            }
-        };
+        let mut save_path = PathBuf::new();
+        save_path.push("temp");
+        save_path.push("book.xlsx");
+
+        save_book(&mut workbook, save_path);
     });
 
     time_it!("dumping" => CLIENT.dump_cache());
