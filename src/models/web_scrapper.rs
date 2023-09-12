@@ -33,33 +33,11 @@ impl WebScraper {
         let adult_cookie = format!("adult={}; Secure", if adult { "t" } else { "f" });
         let cookie = format!("{}; {}", session_cookie, adult_cookie);
 
-        // let cache = if fs::metadata("cache.ron").is_ok() {
-        //     Arc::new(RwLock::new(Cache::new_from_file("cache.ron".into())))
-        // } else {
-        //     Arc::new(RwLock::new(Cache::new()))
-        // };
-
         Self { client, cookie }
     }
 }
 
 impl WebScraper {
-    /// Get the cache stats.
-    // pub fn get_cache_stats(&self) -> String {
-    //     let stats = HtmlCacheStats {
-    //         ..self.cache.clone().read().unwrap().get_stats()
-    //     };
-    //
-    //     format!("{:#?}", stats)
-    // }
-    //
-    // /// Get the cache misses.
-    // pub fn get_cache_misses(&self) -> String {
-    //     let misses = self.cache.clone().read().unwrap().get_misses();
-    //
-    //     format!("{:#?}", misses)
-    // }
-
     /// Get a single page.
     #[allow(clippy::result_large_err)]
     pub fn get_one(

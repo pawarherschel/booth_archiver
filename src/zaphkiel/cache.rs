@@ -6,7 +6,7 @@ use std::sync::Arc;
 use std::sync::RwLock;
 
 use path_absolutize::Absolutize;
-use ron::ser::{PrettyConfig, to_string_pretty};
+use ron::ser::{to_string_pretty, PrettyConfig};
 use serde::{Deserialize, Serialize};
 
 use crate::time_it;
@@ -31,11 +31,6 @@ pub struct HtmlCacheStats {
 }
 
 impl Cache {
-    /// Create a new cache with default values
-    pub fn new() -> Self {
-        Self::new_with_path("cache.ron".into())
-    }
-
     /// Create a new cache with a custom path
     pub fn new_with_path(path_to_cache: PathBuf) -> Self {
         let cache = match fs::metadata(&path_to_cache) {
@@ -66,15 +61,6 @@ impl Cache {
             cache,
             ..Cache::default()
         }
-    }
-
-    /// Create a new cache and uses the cache from the given path
-    pub fn new_from_file(cache_location: PathBuf) -> Self {
-        let mut new = Self::new_with_path(cache_location.clone());
-
-        new.pump_from_file(cache_location);
-
-        new
     }
 }
 
@@ -196,5 +182,10 @@ impl Cache {
     /// get the path to the cache file
     pub fn get_path_to_cache(&self) -> PathBuf {
         self.path_to_cache.clone()
+    }
+
+    /// clear the cache
+    pub fn clear(&mut self) {
+        self.cache.clear();
     }
 }

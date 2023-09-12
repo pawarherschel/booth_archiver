@@ -20,10 +20,10 @@ use booth_archiver::zaphkiel::xlsx::{save_book, write_all, write_headers};
 fn main() {
     let start: Instant = Instant::now();
 
-    let wishlist_pages: Vec<String> = time_it!(at once | "getting wishlist pages" => {
-            let pages = get_all_wishlist_pages(&CLIENT);
+    let (wishlist_pages, _last_page_changed) = time_it!(at once | "getting wishlist pages" => {
+            let (pages, changed) = get_all_wishlist_pages(&CLIENT);
             println!("number of pages = {}", pages.len());
-            pages
+            (pages, changed)
         }
     );
 

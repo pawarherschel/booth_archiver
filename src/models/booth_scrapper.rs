@@ -1,3 +1,5 @@
+use std::fs;
+use std::fs::File;
 use std::path::PathBuf;
 use std::sync::{Arc, RwLock};
 
@@ -26,18 +28,38 @@ fn get_last_page_number(client: &WebScraper) -> u32 {
         .parse::<u32>()
         .expect("failed to parse page number");
 
+    ron::ser::to_writer_pretty(
+        File::create("cache/last_page.ron").unwrap(),
+        &page,
+        Default::default(),
+    )
+    .unwrap();
+
     page
 }
 
 /// Get all the wishlist pages.
-pub fn get_all_wishlist_pages(client: &WebScraper) -> Vec<String> {
+pub fn get_all_wishlist_pages(client: &WebScraper) -> (Vec<String>, bool) {
+    let prev_last_page = if fs::metadata("cache/last_page.ron").is_ok() {
+        ron::de::from_reader(File::open("cache/last_page.ron").unwrap()).unwrap()
+    } else {
+        0
+    };
+
     let last_page = get_last_page_number(client);
+
+    let last_page_changed = prev_last_page != last_page;
 
     let mut cache_path = PathBuf::new();
     cache_path.push("cache");
     cache_path.push("get_all_wishlist_pages.ron");
 
     let cache = Arc::new(RwLock::new(Cache::new_with_path(cache_path)));
+
+    if last_page_changed {
+        println!("last page changed, clearing cache");
+        cache.clone().write().unwrap().clear();
+    }
 
     let urls = (1..=last_page)
         .map(|page_number| format!("{}{}", BASE_BOOTH_WISHLIST_URL, page_number))
@@ -52,7 +74,7 @@ pub fn get_all_wishlist_pages(client: &WebScraper) -> Vec<String> {
 
     cache.clone().read().unwrap().dump();
 
-    ret
+    (ret, last_page_changed)
 }
 
 /// Get all the item numbers on a wishlist page.
