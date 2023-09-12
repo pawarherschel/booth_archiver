@@ -24,3 +24,5 @@ cache.ron
 .idea
 /client_secret.json
 /storage.json
+
+cache/*
