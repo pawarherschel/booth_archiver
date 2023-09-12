@@ -1,11 +1,12 @@
 use std::collections::HashMap;
 use std::fs;
+use std::fs::File;
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::sync::RwLock;
 
 use path_absolutize::Absolutize;
-use ron::ser::{PrettyConfig, to_string_pretty};
+use ron::ser::{to_string_pretty, PrettyConfig};
 use serde::{Deserialize, Serialize};
 
 use crate::time_it;
@@ -37,9 +38,33 @@ impl Cache {
 
     /// Create a new cache with a custom path
     pub fn new_with_path(path_to_cache: PathBuf) -> Self {
+        let cache = match fs::metadata(&path_to_cache) {
+            Ok(_) => {
+                let cache = fs::read_to_string(&path_to_cache).unwrap_or_else(|_| {
+                    panic!(
+                        "{} not found",
+                        &path_to_cache
+                            .absolutize()
+                            .expect("failed to absolutize path")
+                            .to_str()
+                            .expect("failed to convert path to str")
+                    )
+                });
+
+                let cache: HashMap<String, String> = ron::from_str(&cache).expect(
+                    "Failed to parse cache.ron, \
+                                cache.ron exists but the ron data is invalid",
+                );
+
+                cache
+            }
+            Err(_) => HashMap::new(),
+        };
+
         Self {
             path_to_cache,
-            ..Self::default()
+            cache,
+            ..Cache::default()
         }
     }
 
@@ -139,6 +164,12 @@ impl Cache {
                     .expect("failed to convert path to str")
             )
         });
+
+        if fs::metadata(path).is_err() {
+            File::create(path).unwrap_or_else(|err| {
+                panic!("Failed to create file `{path}` due to error: {err}`")
+            });
+        }
 
         fs::write(path, cache)
             .unwrap_or_else(|e| panic!("failed to write to cache file because of error: {}", e));

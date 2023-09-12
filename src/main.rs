@@ -1,6 +1,7 @@
 use fs::File;
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
+use std::sync::{Arc, RwLock};
 use std::time::Instant;
 
 use indicatif::ParallelProgressIterator;
@@ -11,6 +12,7 @@ use scraper::Html;
 use booth_archiver::api_structs::items::ItemApiResponse;
 use booth_archiver::models::booth_scrapper::*;
 use booth_archiver::time_it;
+use booth_archiver::zaphkiel::cache::Cache;
 use booth_archiver::zaphkiel::lazy_statics::*;
 use booth_archiver::zaphkiel::utils::get_pb;
 use booth_archiver::zaphkiel::xlsx::{save_book, write_all, write_headers};
@@ -35,16 +37,23 @@ fn main() {
         all_item_numbers
     });
 
+    let mut path_to_cache = PathBuf::new();
+    path_to_cache.push("cache");
+    path_to_cache.push("all_items.ron");
+
+    let cache = Arc::new(RwLock::new(Cache::new_with_path(path_to_cache)));
+
     let all_items = time_it!(at once | "Extracting items" => all_item_numbers
+        // .iter()
         .par_iter()
         .progress_with(get_pb(all_item_numbers.len() as u64, "Extracting Items"))
         .map(|id| format!("https://booth.pm/en/items/{}.json", id))
-        .filter_map(|url| CLIENT.get_one(url).ok())
+        .filter_map(|url| CLIENT.get_one(url, Some(cache.clone())).ok())
         .filter_map(|item| serde_json::from_str::<ItemApiResponse>(&item).ok())
         .collect::<Vec<ItemApiResponse>>()
     );
 
-    dbg!(all_items.len());
+    println!("all_items.len(): {}", all_items.len());
 
     time_it!(at once | "writing items to json file" => {
         let output_path = Path::new("temp/items.json");
@@ -73,8 +82,11 @@ fn main() {
         save_book(&mut workbook, "temp/book.xlsx");
     });
 
-    time_it!("dumping" => CLIENT.dump_cache());
-    println!("{}", CLIENT.get_cache_stats());
-    println!("cache misses: {:}", CLIENT.get_cache_misses());
-    println!("time taken: {:?}", start.elapsed());
+    time_it!("dumping" => cache.clone().write().unwrap().dump());
+    println!("{:#?}", cache.clone().read().unwrap().get_stats());
+    println!(
+        "cache misses: {:#?}",
+        cache.clone().read().unwrap().get_misses()
+    );
+    println!("time taken: {:#?}", start.elapsed());
 }

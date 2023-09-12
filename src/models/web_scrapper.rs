@@ -12,15 +12,7 @@ use crate::zaphkiel::utils::get_pb;
 #[derive(Debug)]
 pub struct WebScraper {
     client: Agent,
-    cache: Arc<RwLock<Cache>>,
     cookie: String,
-}
-
-impl WebScraper {
-    /// Dump the cache to a file.
-    pub fn dump_cache(&self) {
-        self.cache.clone().read().unwrap().dump();
-    }
 }
 
 impl WebScraper {
@@ -42,42 +34,44 @@ impl WebScraper {
         let adult_cookie = format!("adult={}; Secure", if adult { "t" } else { "f" });
         let cookie = format!("{}; {}", session_cookie, adult_cookie);
 
-        let cache = if fs::metadata("cache.ron").is_ok() {
-            Arc::new(RwLock::new(Cache::new_from_file("cache.ron".into())))
-        } else {
-            Arc::new(RwLock::new(Cache::new()))
-        };
+        // let cache = if fs::metadata("cache.ron").is_ok() {
+        //     Arc::new(RwLock::new(Cache::new_from_file("cache.ron".into())))
+        // } else {
+        //     Arc::new(RwLock::new(Cache::new()))
+        // };
 
-        Self {
-            client,
-            cookie,
-            cache,
-        }
+        Self { client, cookie }
     }
 }
 
 impl WebScraper {
     /// Get the cache stats.
-    pub fn get_cache_stats(&self) -> String {
-        let stats = HtmlCacheStats {
-            ..self.cache.clone().read().unwrap().get_stats()
-        };
-
-        format!("{:#?}", stats)
-    }
-
-    /// Get the cache misses.
-    pub fn get_cache_misses(&self) -> String {
-        let misses = self.cache.clone().read().unwrap().get_misses();
-
-        format!("{:#?}", misses)
-    }
+    // pub fn get_cache_stats(&self) -> String {
+    //     let stats = HtmlCacheStats {
+    //         ..self.cache.clone().read().unwrap().get_stats()
+    //     };
+    //
+    //     format!("{:#?}", stats)
+    // }
+    //
+    // /// Get the cache misses.
+    // pub fn get_cache_misses(&self) -> String {
+    //     let misses = self.cache.clone().read().unwrap().get_misses();
+    //
+    //     format!("{:#?}", misses)
+    // }
 
     /// Get a single page.
     #[allow(clippy::result_large_err)]
-    pub fn get_one(&self, url: String) -> Result<String, ureq::Error> {
-        if let Some(html) = self.cache.clone().read().unwrap().get(&url) {
-            return Ok(html);
+    pub fn get_one(
+        &self,
+        url: String,
+        cache: Option<Arc<RwLock<Cache>>>,
+    ) -> Result<String, ureq::Error> {
+        if let Some(cache) = cache.clone() {
+            if let Some(html) = cache.clone().read().unwrap().get(&url) {
+                return Ok(html);
+            }
         }
 
         let res = self
@@ -87,7 +81,9 @@ impl WebScraper {
             .call()?
             .into_string()?;
 
-        self.cache.clone().write().unwrap().add(url, res.clone());
+        if let Some(cache) = cache.clone() {
+            cache.clone().write().unwrap().add(url, res.clone());
+        }
 
         Ok(res)
     }
@@ -96,12 +92,13 @@ impl WebScraper {
     pub fn get_many(
         &self,
         urls: Vec<String>,
+        cache: Arc<RwLock<Cache>>,
         msg: &'static str,
     ) -> Vec<Result<String, ureq::Error>> {
         let htmls = urls
             .par_iter()
             .progress_with(get_pb(urls.len() as u64, msg))
-            .map(|url| self.get_one(url.clone()))
+            .map(|url| self.get_one(url.clone(), Some(cache.clone())))
             .collect::<Vec<_>>();
         htmls
     }

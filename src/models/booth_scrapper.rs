@@ -1,12 +1,15 @@
 use scraper::{Html, Selector};
+use std::path::PathBuf;
+use std::sync::{Arc, RwLock};
 
 use crate::models::web_scrapper::WebScraper;
+use crate::zaphkiel::cache::Cache;
 use crate::zaphkiel::static_strs::*;
 
 /// Get the last page number of the wishlist.
 fn get_last_page_number(client: &WebScraper) -> u32 {
     let document = client
-        .get_one(BASE_BOOTH_WISHLIST_URL.to_string())
+        .get_one(BASE_BOOTH_WISHLIST_URL.to_string(), None)
         .unwrap_or_else(|e| panic!("failed to get wishlist page because of error: {}", e));
     let document = Html::parse_document(&document);
     let selector = Selector::parse("a.nav-item.last-page").unwrap();
@@ -29,16 +32,26 @@ fn get_last_page_number(client: &WebScraper) -> u32 {
 pub fn get_all_wishlist_pages(client: &WebScraper) -> Vec<String> {
     let last_page = get_last_page_number(client);
 
+    let mut cache_path = PathBuf::new();
+    cache_path.push("cache");
+    cache_path.push("get_all_wishlist_pages.ron");
+
+    let cache = Arc::new(RwLock::new(Cache::new_with_path(cache_path)));
+
     let urls = (1..=last_page)
         .map(|page_number| format!("{}{}", BASE_BOOTH_WISHLIST_URL, page_number))
         .collect::<Vec<_>>();
 
-    client
-        .get_many(urls, "Getting all wishlist pages")
+    let ret = client
+        .get_many(urls, cache.clone(), "Getting all wishlist pages")
         .iter()
         .filter_map(|r| r.as_ref().ok())
         .cloned()
-        .collect()
+        .collect();
+
+    cache.clone().read().unwrap().dump();
+
+    ret
 }
 
 /// Get all the item numbers on a wishlist page.
