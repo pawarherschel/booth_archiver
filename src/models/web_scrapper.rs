@@ -1,11 +1,10 @@
-use std::fs;
 use std::sync::{Arc, RwLock};
 
 use indicatif::ParallelProgressIterator;
 use rayon::prelude::*;
 use ureq::{Agent, AgentBuilder};
 
-use crate::zaphkiel::cache::{Cache, HtmlCacheStats};
+use crate::zaphkiel::cache::Cache;
 use crate::zaphkiel::utils::get_pb;
 
 /// Basic web scraper that uses a cache to avoid downloading the same page twice.

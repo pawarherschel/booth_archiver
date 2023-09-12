@@ -1,6 +1,7 @@
-use scraper::{Html, Selector};
 use std::path::PathBuf;
 use std::sync::{Arc, RwLock};
+
+use scraper::{Html, Selector};
 
 use crate::models::web_scrapper::WebScraper;
 use crate::zaphkiel::cache::Cache;
