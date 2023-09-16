@@ -74,6 +74,8 @@ pub fn get_all_wishlist_pages(client: &WebScraper) -> (Vec<String>, bool) {
 
     cache.clone().read().unwrap().dump();
 
+    assert_eq!(Arc::strong_count(&cache), 1);
+
     (ret, last_page_changed)
 }
 
