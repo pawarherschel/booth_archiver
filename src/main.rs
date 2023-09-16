@@ -72,7 +72,7 @@ fn main() {
     });
 
     time_it!(at once | "writing items to xlsx" => {
-        let mut workbook= Workbook::new();
+        let mut workbook = Workbook::new();
         let worksheet = workbook.add_worksheet();
 
         write_headers(worksheet).unwrap();
