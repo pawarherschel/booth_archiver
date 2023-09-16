@@ -33,7 +33,7 @@ fn get_last_page_number(client: &WebScraper) -> u32 {
         &page,
         Default::default(),
     )
-    .unwrap();
+        .unwrap();
 
     page
 }
