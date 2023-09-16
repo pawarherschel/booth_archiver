@@ -28,13 +28,14 @@ fn main() {
     );
 
     let all_item_numbers = time_it!(at once | "extracting item numbers from pages" => {
-        let mut all_item_numbers = Vec::new();
-        for page in wishlist_pages {
-            let page = Html::parse_document(&page);
-            let item_numbers = get_all_item_numbers_on_page(&page);
-            all_item_numbers.extend(item_numbers);
-        }
-        all_item_numbers
+        wishlist_pages
+        .par_iter()
+        .progress_with(get_pb(wishlist_pages.len() as u64, "Extracting Item Numbers"))
+        .flat_map(|o_page| {
+            let page = Html::parse_document(o_page);
+            get_all_item_numbers_on_page(&page)
+        })
+        .collect::<Vec<_>>()
     });
 
     let mut path_to_cache = PathBuf::new();
