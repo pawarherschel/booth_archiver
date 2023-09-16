@@ -174,5 +174,7 @@ fn main() {
         println!("missing: {:#?}", missing);
     }
 
+    assert_eq!(Arc::strong_count(&cache), 1);
+
     println!("time taken: {:#?}", start.elapsed());
 }
