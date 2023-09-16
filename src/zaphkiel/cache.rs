@@ -18,6 +18,7 @@ pub struct Cache {
     pub cache: HashMap<String, String>,
     stats: Arc<RwLock<HtmlCacheStats>>,
     misses: Arc<RwLock<Vec<String>>>,
+    hits: Arc<RwLock<Vec<String>>>,
     accesses: u64,
     path_to_cache: PathBuf,
 }
@@ -78,6 +79,7 @@ impl Cache {
     pub fn get(&self, key: &String) -> Option<String> {
         if let Some(value) = self.cache.get(key) {
             self.hit();
+            self.hits.write().unwrap().push(key.clone());
             Some(value.clone())
         } else {
             self.miss();
@@ -172,6 +174,11 @@ impl Cache {
     /// get the keys which caused misses
     pub fn get_misses(&self) -> Vec<String> {
         self.misses.clone().read().unwrap().clone()
+    }
+
+    /// get the keys which caused hits
+    pub fn get_hits(&self) -> Vec<String> {
+        self.hits.clone().read().unwrap().clone()
     }
 
     /// get the number of times the cache was accessed
