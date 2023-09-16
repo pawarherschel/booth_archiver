@@ -88,5 +88,9 @@ fn main() {
         "cache misses: {:#?}",
         cache.clone().read().unwrap().get_misses()
     );
+    println!(
+        "number of cache misses; {}",
+        cache.clone().read().unwrap().get_misses().len()
+    );
     println!("time taken: {:#?}", start.elapsed());
 }
