@@ -38,6 +38,8 @@ fn main() {
         .collect::<Vec<_>>()
     });
 
+    println!("all_item_numbers.len(): {}", all_item_numbers.len());
+
     let mut path_to_cache = PathBuf::new();
     path_to_cache.push("cache");
     path_to_cache.push("all_items.ron");
