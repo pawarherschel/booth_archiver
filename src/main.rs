@@ -9,13 +9,13 @@ use rayon::prelude::*;
 use rust_xlsxwriter::Workbook;
 use scraper::Html;
 
-use booth_archiver::{time_it, write_items_to_file};
 use booth_archiver::api_structs::items::ItemApiResponse;
 use booth_archiver::models::booth_scrapper::*;
 use booth_archiver::models::xlsx::{format_cols, save_book, write_all, write_headers};
 use booth_archiver::zaphkiel::cache::Cache;
 use booth_archiver::zaphkiel::lazy_statics::*;
 use booth_archiver::zaphkiel::utils::get_pb;
+use booth_archiver::{time_it, write_items_to_file};
 
 fn main() {
     let start: Instant = Instant::now();
@@ -32,7 +32,7 @@ fn main() {
     let all_item_numbers = time_it!(at once | "extracting item numbers from pages" => {
         wishlist_pages
         .par_iter()
-        .progress_with(get_pb(wishlist_pages.len() as u64, "Extracting Item Numbers"))
+        .progress_with(get_pb(wishlist_pages.len() as u64, "extracting Item Numbers"))
         .flat_map(|o_page| {
             let page = Html::parse_document(o_page);
             get_all_item_numbers_on_page(&page)
@@ -52,9 +52,9 @@ fn main() {
     let client_get_one_errs = Arc::new(Mutex::new(vec![]));
     let serde_json_errs = Arc::new(Mutex::new(vec![]));
 
-    let all_items = time_it!(at once | "Extracting items" => all_item_numbers
+    let all_items = time_it!(at once | "extracting items" => all_item_numbers
         .par_iter()
-        .progress_with(get_pb(all_item_numbers.len() as u64, "Extracting Items"))
+        .progress_with(get_pb(all_item_numbers.len() as u64, "extracting Items"))
         .map(|id| format!("https://booth.pm/en/items/{}.json", id))
         .filter_map(|url| {
             match CLIENT.get_one(url, Some(cache.clone())) {
