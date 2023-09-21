@@ -33,3 +33,24 @@ macro_rules! time_it {
         result
     }};
 }
+
+#[macro_export]
+macro_rules! write_items_to_file {
+    ($items:expr) => {{
+        time_it!(at once | concat!("writing items to ", stringify!($items), " to ron and json files") => {
+            let output_path_ron = format!("temp/{}.ron", stringify!($items));
+            let output_path_json = format!("temp/{}.json", stringify!($items));
+
+            let mut file_ron = File::create(output_path_ron).unwrap();
+            let mut file_json = File::create(output_path_json).unwrap();
+
+            let items_pretty_ron = ron::ser::to_string_pretty(&$items, ron::ser::PrettyConfig::default()).unwrap();
+            let items_pretty_json = serde_json::to_string_pretty(&$items).unwrap();
+
+            file_ron.write_all(items_pretty_ron.as_bytes()).unwrap();
+            file_json.write_all(items_pretty_json.as_bytes()).unwrap();
+
+            println!("wrote items to {} and {}", format!("temp/{}.ron", stringify!($items)), format!("temp/{}.json", stringify!($items)));
+        });
+    }};
+}
