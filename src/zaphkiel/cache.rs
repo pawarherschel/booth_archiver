@@ -191,6 +191,10 @@ impl Cache {
         self.path_to_cache.clone()
     }
 
+    pub fn keys(&self) -> impl Iterator<Item = String> + '_ {
+        self.cache.keys().cloned()
+    }
+
     /// clear the cache
     pub fn clear(&mut self) {
         self.cache.clear();
