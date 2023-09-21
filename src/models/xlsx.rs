@@ -156,10 +156,7 @@ pub fn write_all(worksheet: &mut Worksheet, items: Vec<ItemApiResponse>) {
 }
 
 pub fn format_cols(worksheet: &mut Worksheet) -> Result<(), XlsxError> {
-    let last: ColNum = Headers::Markdown.into();
-    let last = last as u32;
-
-    worksheet.autofilter(0, 0, last, 0)?;
+    worksheet.autofilter(0, 0, 0, Headers::Markdown.into())?;
 
     Ok(())
 }
