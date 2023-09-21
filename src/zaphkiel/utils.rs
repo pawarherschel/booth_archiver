@@ -269,6 +269,8 @@ pub fn unneeded_values(all_items: &[ItemApiResponse]) {
             .write_all(musics_in_downloadable_json.as_bytes())
             .unwrap();
     }
+
+    check_if_the_unneeded_files_are_generated_and_panic_if_they_do();
 }
 
 pub fn check_if_the_unneeded_files_are_generated_and_panic_if_they_do() {
