@@ -12,6 +12,7 @@ pub mod zaphkiel {
     // pub mod lazy_statics;
     pub mod macros;
     // pub mod static_strs;
+    pub mod pub_consts;
     pub mod utils;
 }
 

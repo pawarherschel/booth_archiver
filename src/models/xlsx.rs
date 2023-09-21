@@ -2,7 +2,7 @@ use rust_xlsxwriter::{ColNum, Url, Workbook, Worksheet, XlsxError};
 
 use crate::api_structs::items::ItemApiResponse;
 use crate::models::item_row::ItemRow;
-use crate::zaphkiel::lazy_statics::DBG;
+use crate::zaphkiel::pub_consts::DBG;
 
 #[derive(Debug, Clone, Copy)]
 enum Headers {

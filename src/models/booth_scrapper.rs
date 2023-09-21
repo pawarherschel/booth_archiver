@@ -7,7 +7,6 @@ use scraper::{Html, Selector};
 
 use crate::models::web_scrapper::WebScraper;
 use crate::zaphkiel::cache::Cache;
-use crate::zaphkiel::static_strs::*;
 
 /// Get the last page number of the wishlist.
 fn get_last_page_number(client: &WebScraper) -> u32 {
@@ -33,7 +32,7 @@ fn get_last_page_number(client: &WebScraper) -> u32 {
         &page,
         Default::default(),
     )
-    .unwrap();
+        .unwrap();
 
     page
 }

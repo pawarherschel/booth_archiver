@@ -9,16 +9,16 @@ use rayon::prelude::*;
 use rust_xlsxwriter::Workbook;
 use scraper::Html;
 
+use booth_archiver::{time_it, write_items_to_file};
 use booth_archiver::api_structs::items::ItemApiResponse;
 use booth_archiver::models::booth_scrapper::*;
 use booth_archiver::models::web_scrapper::WebScraper;
 use booth_archiver::models::xlsx::{format_cols, save_book, write_all, write_headers};
 use booth_archiver::zaphkiel::cache::Cache;
+use booth_archiver::zaphkiel::pub_consts::DBG;
 use booth_archiver::zaphkiel::utils::get_pb;
-use booth_archiver::{time_it, write_items_to_file};
 
-pub const DBG: bool = false;
-pub const COOKIE: &str = include_str!("../../cookie.txt");
+pub const COOKIE: &str = include_str!("../cookie.txt");
 
 fn main() {
     let start: Instant = Instant::now();
