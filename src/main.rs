@@ -133,6 +133,8 @@ fn main() {
 
         write_all(worksheet, all_items);
 
+        format_cols(worksheet).unwrap();
+
         save_book(&mut workbook, "temp/book.xlsx");
     });
 
