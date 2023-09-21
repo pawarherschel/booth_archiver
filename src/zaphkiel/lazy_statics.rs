@@ -6,6 +6,7 @@ use path_absolutize::Absolutize;
 use super::super::models::web_scrapper::WebScraper;
 
 lazy_static! {
+    pub static ref DBG: bool = false;
     /// The cookie for the program.
     pub static ref COOKIE: String = {
         let cookie_file_path = PathBuf::from("cookie.txt");

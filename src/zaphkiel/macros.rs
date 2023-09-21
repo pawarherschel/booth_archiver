@@ -50,7 +50,9 @@ macro_rules! write_items_to_file {
             file_ron.write_all(items_pretty_ron.as_bytes()).unwrap();
             file_json.write_all(items_pretty_json.as_bytes()).unwrap();
 
-            dbg!(format!("temp/{}.ron", stringify!($items)), format!("temp/{}.json", stringify!($items)));
+            if *DBG {
+                dbg!(format!("temp/{}.ron", stringify!($items)), format!("temp/{}.json", stringify!($items)));
+            }
         });
     }};
 }

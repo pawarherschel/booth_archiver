@@ -22,7 +22,9 @@ fn main() {
 
     let (wishlist_pages, _last_page_changed) = time_it!(at once | "getting wishlist pages" => {
             let (pages, changed) = get_all_wishlist_pages(&CLIENT);
-            dbg!(pages.len());
+            if *DBG {
+                dbg!(pages.len());
+            }
             (pages, changed)
         }
     );
@@ -37,8 +39,9 @@ fn main() {
         })
         .collect::<Vec<_>>()
     });
-
-    dbg!(all_item_numbers.len());
+    if *DBG {
+        dbg!(all_item_numbers.len());
+    }
 
     let mut path_to_cache = PathBuf::new();
     path_to_cache.push("cache");
@@ -83,7 +86,9 @@ fn main() {
             .map(|err| err.to_string())
             .collect::<Vec<_>>();
         write_items_to_file!(client_get_one_errs);
-        dbg!(client_get_one_errs.len());
+        if *DBG {
+            dbg!(client_get_one_errs.len());
+        }
     }
 
     if !serde_json_errs.lock().unwrap().is_empty() {
@@ -95,10 +100,14 @@ fn main() {
             .map(|err| err.to_string())
             .collect::<Vec<_>>();
         write_items_to_file!(serde_json_errs);
-        dbg!(serde_json_errs.len());
+        if *DBG {
+            dbg!(serde_json_errs.len());
+        }
     }
 
-    dbg!(all_items.len());
+    if *DBG {
+        dbg!(all_items.len());
+    }
 
     write_items_to_file!(all_items);
 
@@ -118,11 +127,13 @@ fn main() {
     time_it!("dumping cache" => cache.clone().write().unwrap().dump());
 
     let cache_stats = cache.clone().read().unwrap().get_stats();
-    dbg!(&cache_stats);
+    if *DBG {
+        dbg!(&cache_stats);
+    }
     write_items_to_file!(cache_stats);
 
     let cache_misses = cache.clone().read().unwrap().get_misses();
-    if !cache_misses.is_empty() {
+    if !cache_misses.is_empty() && *DBG {
         dbg!(cache_misses.len());
         dbg!(cache_misses);
     }

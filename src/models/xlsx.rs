@@ -2,6 +2,7 @@ use rust_xlsxwriter::{ColNum, Url, Workbook, Worksheet, XlsxError};
 
 use crate::api_structs::items::ItemApiResponse;
 use crate::models::item_row::ItemRow;
+use crate::zaphkiel::lazy_statics::DBG;
 
 #[derive(Debug, Clone, Copy)]
 enum Headers {
@@ -166,16 +167,18 @@ pub fn format_cols(worksheet: &mut Worksheet) -> Result<(), XlsxError> {
 pub fn save_book(workbook: &mut Workbook, path: &'static str) {
     match workbook.save(path) {
         Ok(_) => {
-            dbg!("saved");
+            if *DBG {
+                dbg!("saved");
+            }
         }
         Err(e) => match e {
-            XlsxError::IoError(e) => println!(
+            XlsxError::IoError(e) => panic!(
                 "io error: {}\n\
                 Did you check if the file is already open in excel?",
                 e
             ),
             _ => {
-                dbg!("error: {}", e);
+                panic!("error: {}", e);
             }
         },
     };
