@@ -9,6 +9,12 @@
 /// ```
 macro_rules! time_it {
     ($comment:literal => $stmt:stmt) => {{
+        time_it!(concat!($comment, "") => {$stmt})
+    }};
+    (at once | $comment:literal => $stmt:stmt) => {{
+        time_it!(at once | concat!($comment, "") => {$stmt})
+    }};
+    ($comment:expr => $stmt:stmt) => {{
         use std::io::Write;
         print!("{} => ", $comment);
         let _ = std::io::stdout().flush();
@@ -18,7 +24,7 @@ macro_rules! time_it {
         println!("{:?}", duration);
         result
     }};
-    (at once | $comment:literal => $stmt:stmt) => {{
+    (at once | $comment:expr => $stmt:stmt) => {{
         use std::io::Write;
         let start = std::time::Instant::now();
         let result = { $stmt };
