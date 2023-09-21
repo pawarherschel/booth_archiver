@@ -165,14 +165,18 @@ pub fn format_cols(worksheet: &mut Worksheet) -> Result<(), XlsxError> {
 
 pub fn save_book(workbook: &mut Workbook, path: &'static str) {
     match workbook.save(path) {
-        Ok(_) => println!("saved"),
+        Ok(_) => {
+            dbg!("saved");
+        }
         Err(e) => match e {
             XlsxError::IoError(e) => println!(
                 "io error: {}\n\
                 Did you check if the file is already open in excel?",
                 e
             ),
-            _ => println!("error: {}", e),
+            _ => {
+                dbg!("error: {}", e);
+            }
         },
     };
 }
