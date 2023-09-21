@@ -11,11 +11,11 @@ use scraper::Html;
 
 use booth_archiver::api_structs::items::ItemApiResponse;
 use booth_archiver::models::booth_scrapper::*;
+use booth_archiver::models::xlsx::{format_cols, save_book, write_all, write_headers};
 use booth_archiver::time_it;
 use booth_archiver::zaphkiel::cache::Cache;
 use booth_archiver::zaphkiel::lazy_statics::*;
 use booth_archiver::zaphkiel::utils::get_pb;
-use booth_archiver::zaphkiel::xlsx::{save_book, write_all, write_headers};
 
 fn main() {
     let start: Instant = Instant::now();

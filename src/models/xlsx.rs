@@ -1,4 +1,5 @@
-use rust_xlsxwriter::{ColNum, Workbook, Worksheet, XlsxError};
+use rust_xlsxwriter::{ColNum, Url, Workbook, Worksheet, XlsxError};
+use serde_json::Value::Object;
 
 use crate::api_structs::items::ItemApiResponse;
 use crate::models::item_row::ItemRow;
@@ -52,7 +53,7 @@ impl From<Headers> for ColNum {
     }
 }
 
-pub fn write_headers(worksheet: &mut Worksheet) -> Result<(), rust_xlsxwriter::XlsxError> {
+pub fn write_headers(worksheet: &mut Worksheet) -> Result<(), XlsxError> {
     const ROW: u32 = 0;
 
     worksheet.write(ROW, Headers::ItemName.into(), "Item Name")?;
@@ -86,11 +87,7 @@ pub fn write_headers(worksheet: &mut Worksheet) -> Result<(), rust_xlsxwriter::X
     Ok(())
 }
 
-pub fn write_row(
-    item: &ItemRow,
-    worksheet: &mut Worksheet,
-    row: u32,
-) -> Result<(), rust_xlsxwriter::XlsxError> {
+pub fn write_row(item: &ItemRow, worksheet: &mut Worksheet, row: u32) -> Result<(), XlsxError> {
     let ItemRow {
         item_name,
         item_name_translated,
@@ -117,18 +114,18 @@ pub fn write_row(
         Headers::ItemNameTranslated.into(),
         item_name_translated,
     )?;
-    worksheet.write(row, Headers::ItemLink.into(), item_link)?;
+    worksheet.write(row, Headers::ItemLink.into(), Url::new(item_link))?;
     worksheet.write(row, Headers::AuthorName.into(), author_name)?;
     worksheet.write(
         row,
         Headers::AuthorNameTranslated.into(),
         author_name_translated,
     )?;
-    worksheet.write(row, Headers::AuthorLink.into(), author_link)?;
+    worksheet.write(row, Headers::AuthorLink.into(), Url::new(author_link))?;
     worksheet.write(row, Headers::PrimaryCategory.into(), primary_category)?;
     worksheet.write(row, Headers::SecondaryCategory.into(), secondary_category)?;
-    worksheet.write(row, Headers::VRChat.into(), vrchat)?;
-    worksheet.write(row, Headers::Adult.into(), adult)?;
+    worksheet.write_boolean(row, Headers::VRChat.into(), vrchat)?;
+    worksheet.write_boolean(row, Headers::Adult.into(), adult)?;
     worksheet.write(row, Headers::Tags.into(), tags.join(", "))?;
     worksheet.write(row, Headers::Price.into(), price)?;
     worksheet.write(row, Headers::Currency.into(), currency)?;
@@ -156,6 +153,15 @@ pub fn write_all(worksheet: &mut Worksheet, items: Vec<ItemApiResponse>) {
         .map(|item| item.to_owned().into())
         .enumerate()
         .for_each(|(idx, item)| write_row(&item, worksheet, idx as u32 + 1).unwrap());
+}
+
+pub fn format_cols(worksheet: &mut Worksheet) -> Result<(), XlsxError> {
+    let last: ColNum = Headers::Markdown.into();
+    let last = last as u32;
+
+    worksheet.autofilter(0, 0, last, 0)?;
+
+    Ok(())
 }
 
 pub fn save_book(workbook: &mut Workbook, path: &'static str) {

@@ -4,6 +4,7 @@ pub mod models {
     // pub mod item_metadata;
     pub mod item_row;
     pub mod web_scrapper;
+    pub mod xlsx;
 }
 
 pub mod zaphkiel {
@@ -12,7 +13,6 @@ pub mod zaphkiel {
     pub mod macros;
     pub mod static_strs;
     pub mod utils;
-    pub mod xlsx;
 }
 
 pub mod api_structs {
