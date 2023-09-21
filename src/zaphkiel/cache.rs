@@ -36,21 +36,21 @@ impl Cache {
     pub fn new_with_path(path_to_cache: PathBuf) -> Self {
         let cache = match fs::metadata(&path_to_cache) {
             Ok(_) => {
-                let cache = fs::read_to_string(&path_to_cache).unwrap_or_else(|_| {
+                let abs_path = path_to_cache
+                    .absolutize()
+                    .expect("failed to absolutize path");
+                let abs_path = abs_path.to_str().expect("failed to convert path to str");
+
+                let cache = fs::read_to_string(&path_to_cache)
+                    .unwrap_or_else(|_| panic!("{} not found", abs_path));
+
+                let cache: HashMap<String, String> = ron::from_str(&cache).unwrap_or_else(|e| {
                     panic!(
-                        "{} not found",
-                        &path_to_cache
-                            .absolutize()
-                            .expect("failed to absolutize path")
-                            .to_str()
-                            .expect("failed to convert path to str")
+                        "Failed to parse {}, {} exists but the ron data is invalid\n\
+                        Failed with error: {}",
+                        abs_path, abs_path, e
                     )
                 });
-
-                let cache: HashMap<String, String> = ron::from_str(&cache).expect(
-                    "Failed to parse cache.ron, \
-                                cache.ron exists but the ron data is invalid",
-                );
 
                 cache
             }
@@ -114,20 +114,20 @@ impl Cache {
 
     /// pump the cache from the given cache file
     pub fn pump_from_file(&mut self, cache_location: PathBuf) {
+        let abs_path = cache_location
+            .absolutize()
+            .expect("failed to absolutize path");
+        let abs_path = abs_path.to_str().expect("failed to convert path to str");
         let cache = time_it!("reading from cache file" =>
         fs::read_to_string(&cache_location)
-            .unwrap_or_else(|_| panic!("{} not found",
-                    cache_location
-                        .absolutize()
-                        .expect("failed to absolutize path")
-                        .to_str()
-                        .expect("failed to convert path to str")))
+            .unwrap_or_else(|_| panic!("{} not found", abs_path))
         );
 
         let cache: HashMap<String, String> = time_it!("converting to hashmap from string" =>
             ron::from_str(&cache)
-                .expect("Failed to parse cache.ron, \
-                cache.ron exists but the ron data is invalid")
+                .unwrap_or_else(|e| panic!("Failed to parse {}, \
+                {} exists but the ron data is invalid\n\
+                failed with error: {}", abs_path, abs_path, e))
         );
 
         self.cache = cache;

@@ -1,29 +1,20 @@
+use std::path::PathBuf;
+
 use lazy_static::lazy_static;
 use path_absolutize::Absolutize;
 
-use super::super::models::config::Config;
 use super::super::models::web_scrapper::WebScraper;
-use super::super::time_it;
 
 lazy_static! {
-    /// The config for the program.
-    pub static ref CONFIG: Config = time_it!("loading config" => Config::get());
-
     /// The cookie for the program.
     pub static ref COOKIE: String = {
+        let cookie_file_path = PathBuf::from("cookie.txt");
         std::fs::read_to_string(
-            CONFIG.cookie_file.as_ref().expect("failed to build Path from PathBuf"),
-        )
-        .unwrap_or_else(|e| {
+            cookie_file_path.clone()
+        ).unwrap_or_else(|e| {
             panic!(
                 "expecting cookie to be in {}, because of error: {}",
-                CONFIG
-                    .cookie_file
-                    .as_ref()
-                    .expect(
-                        "failed to build Path from PathBuf, \
-                        imagine panicking inside a panic lmao"
-                    )
+                cookie_file_path
                     .absolutize()
                     .expect(
                         "failed to absolutize path from PathBuf, \
