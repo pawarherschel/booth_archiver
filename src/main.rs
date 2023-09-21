@@ -11,18 +11,23 @@ use scraper::Html;
 
 use booth_archiver::api_structs::items::ItemApiResponse;
 use booth_archiver::models::booth_scrapper::*;
+use booth_archiver::models::web_scrapper::WebScraper;
 use booth_archiver::models::xlsx::{format_cols, save_book, write_all, write_headers};
 use booth_archiver::zaphkiel::cache::Cache;
-use booth_archiver::zaphkiel::lazy_statics::*;
 use booth_archiver::zaphkiel::utils::get_pb;
 use booth_archiver::{time_it, write_items_to_file};
+
+pub const DBG: bool = false;
+pub const COOKIE: &str = include_str!("../../cookie.txt");
 
 fn main() {
     let start: Instant = Instant::now();
 
+    let client = WebScraper::new(COOKIE.to_string(), true);
+
     let (wishlist_pages, _last_page_changed) = time_it!(at once | "getting wishlist pages" => {
-            let (pages, changed) = get_all_wishlist_pages(&CLIENT);
-            if *DBG {
+            let (pages, changed) = get_all_wishlist_pages(&client);
+            if DBG {
                 dbg!(pages.len());
             }
             (pages, changed)
@@ -39,7 +44,7 @@ fn main() {
         })
         .collect::<Vec<_>>()
     });
-    if *DBG {
+    if DBG {
         dbg!(all_item_numbers.len());
     }
 
@@ -57,7 +62,7 @@ fn main() {
         .progress_with(get_pb(all_item_numbers.len() as u64, "extracting Items"))
         .map(|id| format!("https://booth.pm/en/items/{}.json", id))
         .filter_map(|url| {
-            match CLIENT.get_one(url, Some(cache.clone())) {
+            match client.get_one(url, Some(cache.clone())) {
                 Ok(item) => Some(item),
                 Err(err) => {
                     client_get_one_errs.clone().lock().unwrap().push(err);
@@ -86,7 +91,7 @@ fn main() {
             .map(|err| err.to_string())
             .collect::<Vec<_>>();
         write_items_to_file!(client_get_one_errs);
-        if *DBG {
+        if DBG {
             dbg!(client_get_one_errs.len());
         }
     }
@@ -100,12 +105,12 @@ fn main() {
             .map(|err| err.to_string())
             .collect::<Vec<_>>();
         write_items_to_file!(serde_json_errs);
-        if *DBG {
+        if DBG {
             dbg!(serde_json_errs.len());
         }
     }
 
-    if *DBG {
+    if DBG {
         dbg!(all_items.len());
     }
 
@@ -127,13 +132,13 @@ fn main() {
     time_it!("dumping cache" => cache.clone().write().unwrap().dump());
 
     let cache_stats = cache.clone().read().unwrap().get_stats();
-    if *DBG {
+    if DBG {
         dbg!(&cache_stats);
     }
     write_items_to_file!(cache_stats);
 
     let cache_misses = cache.clone().read().unwrap().get_misses();
-    if !cache_misses.is_empty() && *DBG {
+    if !cache_misses.is_empty() && DBG {
         dbg!(cache_misses.len());
         dbg!(cache_misses);
     }

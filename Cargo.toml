@@ -7,7 +7,6 @@ edition = "2021"
 
 [dependencies]
 indicatif = { version = "0.17.5", features = ["improved_unicode", "rayon"] }
-lazy_static = "1.4.0"
 path-absolutize = "3.1.0"
 rayon = "1.7.0"
 ron = "0.8.0"

@@ -164,7 +164,7 @@ pub fn format_cols(worksheet: &mut Worksheet) -> Result<(), XlsxError> {
 pub fn save_book(workbook: &mut Workbook, path: &'static str) {
     match workbook.save(path) {
         Ok(_) => {
-            if *DBG {
+            if DBG {
                 dbg!("saved");
             }
         }

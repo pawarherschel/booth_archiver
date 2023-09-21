@@ -61,7 +61,6 @@ name = "booth_archiver"
 version = "0.1.0"
 dependencies = [
  "indicatif",
- "lazy_static",
  "path-absolutize",
  "rayon",
  "ron",

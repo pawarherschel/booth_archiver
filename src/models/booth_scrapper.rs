@@ -12,7 +12,7 @@ use crate::zaphkiel::static_strs::*;
 /// Get the last page number of the wishlist.
 fn get_last_page_number(client: &WebScraper) -> u32 {
     let document = client
-        .get_one(BASE_BOOTH_WISHLIST_URL.to_string(), None)
+        .get_one("https://accounts.booth.pm/wish_lists".to_string(), None)
         .unwrap_or_else(|e| panic!("failed to get wishlist page because of error: {}", e));
     let document = Html::parse_document(&document);
     let selector = Selector::parse("a.nav-item.last-page").unwrap();
@@ -33,7 +33,7 @@ fn get_last_page_number(client: &WebScraper) -> u32 {
         &page,
         Default::default(),
     )
-        .unwrap();
+    .unwrap();
 
     page
 }
@@ -62,7 +62,7 @@ pub fn get_all_wishlist_pages(client: &WebScraper) -> (Vec<String>, bool) {
     }
 
     let urls = (1..=last_page)
-        .map(|page_number| format!("{}{}", BASE_BOOTH_WISHLIST_URL, page_number))
+        .map(|page_number| format!("https://accounts.booth.pm/wish_lists?page={}", page_number))
         .collect::<Vec<_>>();
 
     let ret = client
