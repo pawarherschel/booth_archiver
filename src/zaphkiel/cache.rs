@@ -6,7 +6,7 @@ use std::sync::Arc;
 use std::sync::RwLock;
 
 use path_absolutize::Absolutize;
-use ron::ser::{PrettyConfig, to_string_pretty};
+use ron::ser::{to_string_pretty, PrettyConfig};
 use serde::{Deserialize, Serialize};
 
 use crate::time_it;
@@ -15,7 +15,7 @@ use crate::time_it;
 /// It is safe to use this cache from multiple threads if you wrap it in an Arc<RwLock<_>>
 #[derive(Debug, Default, Clone)]
 pub struct Cache {
-    pub cache: HashMap<String, String>,
+    cache: HashMap<String, String>,
     stats: Arc<RwLock<HtmlCacheStats>>,
     misses: Arc<RwLock<Vec<String>>>,
     hits: Arc<RwLock<Vec<String>>>,
