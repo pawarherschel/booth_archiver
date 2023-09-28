@@ -88,32 +88,6 @@ pub fn get_all_wishlist_pages(client: &WebScraper) -> (Vec<String>, bool) {
 ///
 /// * `page` - The page to get the item numbers from.
 pub fn get_all_item_numbers_on_page(page: &WishListNameItemsResponse) -> Vec<u32> {
-    //     let selector =
-    //         Selector::parse("body > div.page-wrap > main > div.manage-page-body > div > div > ul")
-    //             .unwrap();
-    //
-    //     let ul = page
-    //         .select(&selector)
-    //         .next()
-    //         .expect("failed to get the list of items from the webpage");
-    //
-    //     let selector = Selector::parse("li").unwrap();
-    //
-    //     let list = ul.select(&selector).collect::<Vec<_>>();
-    //
-    //     let mut items = vec![];
-    //
-    //     for item in list {
-    //         item.value()
-    //             .attrs()
-    //             .filter(|&(key, _)| key == "data-product-id")
-    //             .for_each(|(_, value)| {
-    //                 let item_number = value.parse::<u32>().unwrap_or_else(|e| {
-    //                     panic!("failed to parse item number, {}, with error: {}", value, e)
-    //                 });
-    //                 items.push(item_number);
-    //             });
-    //     }
     let items = page
         .items
         .iter()
