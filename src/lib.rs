@@ -3,7 +3,7 @@ pub mod models {
     // pub mod config;
     // pub mod item_metadata;
     pub mod item_row;
-    pub mod web_scrapper;
+    pub mod web_client;
     pub mod xlsx;
 }
 

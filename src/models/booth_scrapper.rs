@@ -4,7 +4,7 @@ use std::path::PathBuf;
 use std::sync::{Arc, RwLock};
 
 use crate::api_structs::wish_list_name_items::WishListNameItemsResponse;
-use crate::models::web_scrapper::WebScraper;
+use crate::models::web_client::WebScraper;
 use crate::zaphkiel::cache::Cache;
 
 /// Get the last page number of the wishlist.
@@ -31,7 +31,7 @@ fn get_last_page_number(client: &WebScraper) -> u32 {
         &last_page,
         Default::default(),
     )
-        .unwrap();
+    .unwrap();
 
     last_page
 }
