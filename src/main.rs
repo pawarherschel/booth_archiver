@@ -18,8 +18,6 @@ use booth_archiver::zaphkiel::pub_consts::DBG;
 use booth_archiver::zaphkiel::utils::get_pb;
 use booth_archiver::{time_it, write_items_to_file};
 
-pub const COOKIE: &str = include_str!("../cookie.txt");
-
 fn main() {
     // use lingual::{blocking, Lang};
     // println!("testing blockng");
@@ -31,7 +29,9 @@ fn main() {
     // todo!("Add translation");
     let start: Instant = Instant::now();
 
-    let client = WebScraper::new(COOKIE.to_string(), true);
+    let cookie = fs::read_to_string("cookie.txt").unwrap();
+
+    let client = WebScraper::new(cookie, true);
 
     let (wishlist_pages, _) = time_it!(at once | "getting wishlist pages" => {
             let (pages, changed) = get_all_wishlist_pages(&client);
