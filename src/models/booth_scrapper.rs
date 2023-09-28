@@ -3,38 +3,37 @@ use std::fs::File;
 use std::path::PathBuf;
 use std::sync::{Arc, RwLock};
 
-use scraper::{Html, Selector};
-
+use crate::api_structs::wish_list_name_items::WishListNameItemsResponse;
 use crate::models::web_scrapper::WebScraper;
 use crate::zaphkiel::cache::Cache;
 
 /// Get the last page number of the wishlist.
 fn get_last_page_number(client: &WebScraper) -> u32 {
     let document = client
-        .get_one("https://accounts.booth.pm/wish_lists".to_string(), None)
+        .get_one(
+            "https://accounts.booth.pm/wish_list_name_items.json?page=1".to_string(),
+            None,
+        )
         .unwrap_or_else(|e| panic!("failed to get wishlist page because of error: {}", e));
-    let document = Html::parse_document(&document);
-    let selector = Selector::parse("a.nav-item.last-page").unwrap();
-    let last_page = document.select(&selector).last().expect(
-        "failed to get last page, \
-            are you sure the cookie is in the correct place and is valid",
-    );
-    let href = last_page
-        .value()
-        .attr("href")
-        .expect("the element didnt have an href");
-    let page = href.split("page=").collect::<Vec<&str>>()[1]
-        .parse::<u32>()
-        .expect("failed to parse page number");
+    let document =
+        serde_json::from_str::<WishListNameItemsResponse>(&document).unwrap_or_else(|e| {
+            panic!(
+                "failed to parse wishlist page as json because of error: {}\n\
+                document: {}",
+                e, document
+            )
+        });
+    let last_page = document.pagination.total_pages;
+    let last_page = last_page as u32;
 
     ron::ser::to_writer_pretty(
         File::create("cache/last_page.ron").unwrap(),
-        &page,
+        &last_page,
         Default::default(),
     )
         .unwrap();
 
-    page
+    last_page
 }
 
 /// Get all the wishlist pages.
@@ -61,7 +60,12 @@ pub fn get_all_wishlist_pages(client: &WebScraper) -> (Vec<String>, bool) {
     }
 
     let urls = (1..=last_page)
-        .map(|page_number| format!("https://accounts.booth.pm/wish_lists?page={}", page_number))
+        .map(|page_number| {
+            format!(
+                "https://accounts.booth.pm/wish_list_name_items.json?page={}",
+                page_number
+            )
+        })
         .collect::<Vec<_>>();
 
     let ret = client
@@ -83,33 +87,38 @@ pub fn get_all_wishlist_pages(client: &WebScraper) -> (Vec<String>, bool) {
 /// # Arguments
 ///
 /// * `page` - The page to get the item numbers from.
-pub fn get_all_item_numbers_on_page(page: &Html) -> Vec<u32> {
-    let selector =
-        Selector::parse("body > div.page-wrap > main > div.manage-page-body > div > div > ul")
-            .unwrap();
-
-    let ul = page
-        .select(&selector)
-        .next()
-        .expect("failed to get the list of items from the webpage");
-
-    let selector = Selector::parse("li").unwrap();
-
-    let list = ul.select(&selector).collect::<Vec<_>>();
-
-    let mut items = vec![];
-
-    for item in list {
-        item.value()
-            .attrs()
-            .filter(|&(key, _)| key == "data-product-id")
-            .for_each(|(_, value)| {
-                let item_number = value.parse::<u32>().unwrap_or_else(|e| {
-                    panic!("failed to parse item number, {}, with error: {}", value, e)
-                });
-                items.push(item_number);
-            });
-    }
+pub fn get_all_item_numbers_on_page(page: &WishListNameItemsResponse) -> Vec<u32> {
+    //     let selector =
+    //         Selector::parse("body > div.page-wrap > main > div.manage-page-body > div > div > ul")
+    //             .unwrap();
+    //
+    //     let ul = page
+    //         .select(&selector)
+    //         .next()
+    //         .expect("failed to get the list of items from the webpage");
+    //
+    //     let selector = Selector::parse("li").unwrap();
+    //
+    //     let list = ul.select(&selector).collect::<Vec<_>>();
+    //
+    //     let mut items = vec![];
+    //
+    //     for item in list {
+    //         item.value()
+    //             .attrs()
+    //             .filter(|&(key, _)| key == "data-product-id")
+    //             .for_each(|(_, value)| {
+    //                 let item_number = value.parse::<u32>().unwrap_or_else(|e| {
+    //                     panic!("failed to parse item number, {}, with error: {}", value, e)
+    //                 });
+    //                 items.push(item_number);
+    //             });
+    //     }
+    let items = page
+        .items
+        .iter()
+        .map(|item| item.tracking_data.product_id as u32)
+        .collect::<Vec<_>>();
 
     items
 }

@@ -18,4 +18,5 @@ pub mod zaphkiel {
 
 pub mod api_structs {
     pub mod items;
+    pub mod wish_list_name_items;
 }

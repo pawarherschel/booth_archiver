@@ -7,15 +7,15 @@ use std::time::Instant;
 use indicatif::ParallelProgressIterator;
 use rayon::prelude::*;
 use rust_xlsxwriter::Workbook;
-use scraper::Html;
 
 use booth_archiver::api_structs::items::ItemApiResponse;
+use booth_archiver::api_structs::wish_list_name_items::WishListNameItemsResponse;
 use booth_archiver::models::booth_scrapper::*;
 use booth_archiver::models::web_scrapper::WebScraper;
 use booth_archiver::models::xlsx::{format_cols, save_book, write_all, write_headers};
 use booth_archiver::zaphkiel::cache::Cache;
 use booth_archiver::zaphkiel::pub_consts::DBG;
-use booth_archiver::zaphkiel::utils::{get_pb, unneeded_values};
+use booth_archiver::zaphkiel::utils::get_pb;
 use booth_archiver::{time_it, write_items_to_file};
 
 pub const COOKIE: &str = include_str!("../cookie.txt");
@@ -39,7 +39,7 @@ fn main() {
         .par_iter()
         .progress_with(get_pb(wishlist_pages.len() as u64, "extracting Item Numbers"))
         .flat_map(|o_page| {
-            let page = Html::parse_document(o_page);
+            let page = serde_json::from_str::<WishListNameItemsResponse>(o_page).unwrap();
             get_all_item_numbers_on_page(&page)
         })
         .collect::<Vec<_>>()
@@ -167,5 +167,5 @@ fn main() {
 
     assert_eq!(Arc::strong_count(&cache), 1);
 
-    println!("whole program: {:#?}", start.elapsed());
+    println!("whole program => {:#?}", start.elapsed());
 }
