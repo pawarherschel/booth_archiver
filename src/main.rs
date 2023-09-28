@@ -21,11 +21,19 @@ use booth_archiver::{time_it, write_items_to_file};
 pub const COOKIE: &str = include_str!("../cookie.txt");
 
 fn main() {
+    // use lingual::{blocking, Lang};
+    // println!("testing blockng");
+    // let translation = blocking::translate("Hello, World!", None, Some(Lang::Ja)).unwrap();
+    // println!("translated: {:?}", translation);
+    // let translation = blocking::translate("こんにちは世界！", None, Some(Lang::En)).unwrap();
+    // println!("translated: {:?}", translation);
+    //
+    // todo!("Add translation");
     let start: Instant = Instant::now();
 
     let client = WebScraper::new(COOKIE.to_string(), true);
 
-    let (wishlist_pages, _last_page_changed) = time_it!(at once | "getting wishlist pages" => {
+    let (wishlist_pages, _) = time_it!(at once | "getting wishlist pages" => {
             let (pages, changed) = get_all_wishlist_pages(&client);
             if DBG {
                 dbg!(pages.len());
