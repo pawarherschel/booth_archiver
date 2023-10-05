@@ -131,17 +131,60 @@ fn main() {
 
     let translation_cache = Arc::new(RwLock::new(Cache::new_with_path(path_to_cache)));
 
-    // let strings = item_rows
-    //     .iter()
-    //     .flat_map(|item_row| {
-    //         let strings = vec![
-    //             item_row.author_name.clone(),
-    //             item_row.item_name.clone(),
-    //             item_row.markdown.clone(),
-    //         ];
-    //         strings
-    //     })
-    //     .collect::<Vec<_>>();
+    let strings = time_it!("extracting strings from item rows" => {
+        item_rows
+            .iter()
+            .flat_map(|item_row| {
+                let markdown_strings = item_row
+                    .markdown
+                    .split('\n')
+                    .map(|x| x.to_string())
+                    .collect::<Vec<_>>();
+                let mut strings = vec![item_row.author_name.clone(), item_row.item_name.clone()];
+                strings.extend(markdown_strings);
+                strings
+            })
+            .collect::<Vec<_>>()
+    });
+
+    let translation_errors = Arc::new(Mutex::new(vec![]));
+
+    time_it!(at once | "caching translation for strings" => {
+        strings
+            .par_iter()
+            .progress_with(get_pb(strings.len() as u64, "translating strings"))
+            .for_each(|string| {
+                match translation::translate(string, Lang::En, Some(translation_cache.clone())) {
+                    Ok(_) => {}
+                    Err(err) => {
+                        debug!(err.clone(), string.clone());
+                        translation_errors
+                            .clone()
+                            .lock()
+                            .unwrap()
+                            .push((err, string.clone()));
+                    }
+                }
+            });
+    });
+
+    if !translation_errors.lock().unwrap().is_empty() {
+        let translation_errors = translation_errors.clone();
+        let translation_errors = translation_errors.lock();
+        let translation_errors = translation_errors.unwrap();
+        let translation_errors = translation_errors
+            .iter()
+            .map(|(err, string)| (err, string.to_string()))
+            .collect::<Vec<_>>();
+        write_items_to_file!(translation_errors);
+        debug!(translation_errors.len());
+    }
+
+    time_it!("dumping translation cache" => translation_cache.clone().write().unwrap().dump());
+
+    let initial_translation_cache_stats = translation_cache.clone().read().unwrap().get_stats();
+
+    write_items_to_file!(initial_translation_cache_stats);
 
     let translated_item_rows = time_it!(at once | "translating item rows" => {
         let len = item_rows.len();
@@ -154,9 +197,9 @@ fn main() {
 
     time_it!("dumping translation cache" => translation_cache.clone().write().unwrap().dump());
 
-    let translation_cache_stats = translation_cache.clone().read().unwrap().get_stats();
+    let final_translation_cache_stats = translation_cache.clone().read().unwrap().get_stats();
 
-    write_items_to_file!(translation_cache_stats);
+    write_items_to_file!(final_translation_cache_stats);
 
     time_it!(at once | "writing items to xlsx" => {
         let mut workbook = Workbook::new();
