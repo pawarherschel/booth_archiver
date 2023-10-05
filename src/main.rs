@@ -13,6 +13,7 @@ use booth_archiver::api_structs::wish_list_name_items::WishListNameItemsResponse
 use booth_archiver::models::booth_scrapper::*;
 use booth_archiver::models::item_row::ItemRow;
 use booth_archiver::models::translation;
+use booth_archiver::models::translation::{encode, handle_http};
 use booth_archiver::models::web_client::WebScraper;
 use booth_archiver::models::xlsx::{format_cols, save_book, write_all, write_headers};
 use booth_archiver::zaphkiel::cache::Cache;
@@ -139,15 +140,16 @@ fn main() {
 
     let translation_errors = Arc::new(Mutex::new(vec![]));
 
+    let ctxs = Some(Arc::new(Mutex::new(vec![])));
+
     time_it!(at once | "caching translation for strings" => {
         strings
             .par_iter()
             .progress_with(get_pb(strings.len() as u64, "translating strings"))
             .for_each(|string| {
-                match translation::translate(string, Lang::En, Some(translation_cache.clone())) {
+                match translation::translate(string, Lang::En, Some(translation_cache.clone()), ctxs.clone()) {
                     Ok(_) => {}
                     Err(err) => {
-                        debug!(err.clone(), string.clone());
                         translation_errors
                             .clone()
                             .lock()
@@ -181,7 +183,7 @@ fn main() {
         item_rows
             .into_par_iter()
             .progress_with(get_pb(len as u64, "translating Item Rows"))
-            .map(|item_row| item_row.tl(translation_cache.clone()).unwrap())
+            .map(|item_row| item_row.tl(translation_cache.clone(), ctxs.clone()).unwrap())
             .collect::<Vec<_>>()
     });
 
@@ -239,6 +241,10 @@ fn main() {
     }
 
     assert_eq!(Arc::strong_count(&cache), 1);
+
+    let translation_ctxs = ctxs.unwrap().lock().unwrap().clone();
+
+    write_items_to_file!(translation_ctxs);
 
     println!("whole program => {:#?}", start.elapsed());
 }

@@ -1,6 +1,6 @@
 // use crate::models::item_metadata::ItemMetadata;
 
-use std::sync::{Arc, RwLock};
+use std::sync::{Arc, Mutex, RwLock};
 
 use lingual::Lang;
 use rayon::prelude::*;
@@ -9,6 +9,7 @@ use serde::{Deserialize, Serialize};
 use crate::api_structs::items::ItemApiResponse;
 use crate::debug;
 use crate::models::translation;
+use crate::models::translation::UrlTranslationCTX;
 use crate::zaphkiel::cache::Cache;
 
 #[derive(Clone, Default, Debug, Serialize, Deserialize)]
@@ -94,22 +95,28 @@ impl From<ItemApiResponse> for ItemRow {
 
 impl ItemRow {
     #[inline(always)]
-    pub fn tl(self, cache: Arc<RwLock<Cache>>) -> Result<ItemRow, lingual::Errors> {
-        let author_name_translated =
-            translation::translate(&self.author_name, Lang::En, Some(cache.clone()));
+    pub fn tl(
+        self,
+        cache: Arc<RwLock<Cache>>,
+        ctxs: Option<Arc<Mutex<Vec<UrlTranslationCTX>>>>,
+    ) -> Result<ItemRow, lingual::Errors> {
+        let author_name_translated = translation::translate(
+            &self.author_name,
+            Lang::En,
+            Some(cache.clone()),
+            ctxs.clone(),
+        );
         let author_name_translated = Some(match author_name_translated {
             Ok(author_name_translated) => author_name_translated,
-            #[allow(unused_variables)]
             Err(err) => {
                 debug!(err, self.clone().author_name);
                 self.author_name.clone()
             }
         });
         let item_name_translated =
-            translation::translate(&self.item_name, Lang::En, Some(cache.clone()));
+            translation::translate(&self.item_name, Lang::En, Some(cache.clone()), ctxs.clone());
         let item_name_translated = Some(match item_name_translated {
             Ok(item_name_translated) => item_name_translated,
-            #[allow(unused_variables)]
             Err(err) => {
                 debug!(err, self.clone().item_name);
                 self.item_name.clone()
@@ -121,9 +128,13 @@ impl ItemRow {
             markdown_strings
                 .par_iter()
                 .map(|markdown_string| {
-                    match translation::translate(markdown_string, Lang::En, Some(cache.clone())) {
+                    match translation::translate(
+                        markdown_string,
+                        Lang::En,
+                        Some(cache.clone()),
+                        ctxs.clone(),
+                    ) {
                         Ok(markdown_string) => markdown_string,
-                        #[allow(unused_variables)]
                         Err(err) => {
                             debug!(err, markdown_string);
                             markdown_string.to_string()
