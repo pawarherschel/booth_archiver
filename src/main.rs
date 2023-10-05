@@ -11,6 +11,7 @@ use rust_xlsxwriter::Workbook;
 use booth_archiver::api_structs::items::ItemApiResponse;
 use booth_archiver::api_structs::wish_list_name_items::WishListNameItemsResponse;
 use booth_archiver::models::booth_scrapper::*;
+use booth_archiver::models::item_row::ItemRow;
 use booth_archiver::models::web_client::WebScraper;
 use booth_archiver::models::xlsx::{format_cols, save_book, write_all, write_headers};
 use booth_archiver::zaphkiel::cache::Cache;
@@ -19,14 +20,6 @@ use booth_archiver::zaphkiel::utils::get_pb;
 use booth_archiver::{time_it, write_items_to_file};
 
 fn main() {
-    // use lingual::{blocking, Lang};
-    // println!("testing blockng");
-    // let translation = blocking::translate("Hello, World!", None, Some(Lang::Ja)).unwrap();
-    // println!("translated: {:?}", translation);
-    // let translation = blocking::translate("こんにちは世界！", None, Some(Lang::En)).unwrap();
-    // println!("translated: {:?}", translation);
-    //
-    // todo!("Add translation");
     let start: Instant = Instant::now();
 
     let cookie = fs::read_to_string("cookie.txt").unwrap();
@@ -124,13 +117,54 @@ fn main() {
 
     write_items_to_file!(all_items);
 
+    let item_rows = time_it!(at once | "converting items to item rows" => {
+        all_items
+            .par_iter()
+            .progress_with(get_pb(all_items.len() as u64, "converting items to Item Rows"))
+            .map(|item| item.to_owned().into())
+            .collect::<Vec<ItemRow>>()
+    });
+
+    let mut path_to_cache = PathBuf::new();
+    path_to_cache.push("cache");
+    path_to_cache.push("translation.ron");
+
+    let translation_cache = Arc::new(RwLock::new(Cache::new_with_path(path_to_cache)));
+
+    // let strings = item_rows
+    //     .iter()
+    //     .flat_map(|item_row| {
+    //         let strings = vec![
+    //             item_row.author_name.clone(),
+    //             item_row.item_name.clone(),
+    //             item_row.markdown.clone(),
+    //         ];
+    //         strings
+    //     })
+    //     .collect::<Vec<_>>();
+
+    let translated_item_rows = time_it!(at once | "translating item rows" => {
+        let len = item_rows.len();
+        item_rows
+            .into_par_iter()
+            .progress_with(get_pb(len as u64, "translating Item Rows"))
+            .map(|item_row| item_row.tl(translation_cache.clone()).unwrap())
+            .collect::<Vec<_>>()
+    });
+
+    time_it!("dumping translation cache" => translation_cache.clone().write().unwrap().dump());
+
+    let translation_cache_stats = translation_cache.clone().read().unwrap().get_stats();
+
+    write_items_to_file!(translation_cache_stats);
+
     time_it!(at once | "writing items to xlsx" => {
         let mut workbook = Workbook::new();
         let worksheet = workbook.add_worksheet();
 
         write_headers(worksheet).unwrap();
 
-        write_all(worksheet, all_items);
+        write_all(worksheet, translated_item_rows);
 
         format_cols(worksheet).unwrap();
 

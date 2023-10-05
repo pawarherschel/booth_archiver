@@ -6,7 +6,7 @@ use std::sync::Arc;
 use std::sync::RwLock;
 
 use path_absolutize::Absolutize;
-use ron::ser::{PrettyConfig, to_string_pretty};
+use ron::ser::{to_string_pretty, PrettyConfig};
 use serde::{Deserialize, Serialize};
 
 use crate::time_it;
@@ -16,7 +16,7 @@ use crate::time_it;
 #[derive(Debug, Default, Clone)]
 pub struct Cache {
     cache: HashMap<String, String>,
-    stats: Arc<RwLock<HtmlCacheStats>>,
+    stats: Arc<RwLock<CacheStats>>,
     misses: Arc<RwLock<Vec<String>>>,
     hits: Arc<RwLock<Vec<String>>>,
     accesses: u64,
@@ -25,7 +25,7 @@ pub struct Cache {
 
 /// Stats for the cache
 #[derive(Debug, Default, Serialize, Deserialize, PartialEq, Eq, Clone)]
-pub struct HtmlCacheStats {
+pub struct CacheStats {
     pub cache_hits: u64,
     pub cache_misses: u64,
     pub cache_size: usize,
@@ -166,7 +166,7 @@ impl Cache {
 
 impl Cache {
     /// get the stats of the cache
-    pub fn get_stats(&self) -> HtmlCacheStats {
+    pub fn get_stats(&self) -> CacheStats {
         self.stats.write().unwrap().cache_size = self.cache.len();
         self.stats.clone().read().unwrap().clone()
     }
@@ -191,7 +191,7 @@ impl Cache {
         self.path_to_cache.clone()
     }
 
-    pub fn keys(&self) -> impl Iterator<Item=String> + '_ {
+    pub fn keys(&self) -> impl Iterator<Item = String> + '_ {
         self.cache.keys().cloned()
     }
 

@@ -1,14 +1,23 @@
 // use crate::models::item_metadata::ItemMetadata;
 
 use crate::api_structs::items::ItemApiResponse;
+use crate::models::translation;
+use crate::zaphkiel::cache::Cache;
+use crate::zaphkiel::pub_consts::DBG;
+use crate::zaphkiel::utils::get_pb;
+use indicatif::ParallelProgressIterator;
+use lingual::Lang;
+use rayon::prelude::*;
+use serde::{Deserialize, Serialize};
+use std::sync::{Arc, RwLock};
 
-#[derive(Clone, Default, Debug)]
+#[derive(Clone, Default, Debug, Serialize, Deserialize)]
 pub struct ItemRow {
     pub item_name: String,
-    pub item_name_translated: String,
+    pub item_name_translated: Option<String>,
     pub item_link: String,
     pub author_name: String,
-    pub author_name_translated: String,
+    pub author_name_translated: Option<String>,
     pub author_link: String,
     pub primary_category: String,
     pub secondary_category: String,
@@ -21,15 +30,16 @@ pub struct ItemRow {
     pub image_urls: Vec<String>,
     pub download_links: Vec<String>,
     pub markdown: String,
+    pub markdown_translated: Option<String>,
 }
 
 impl From<ItemApiResponse> for ItemRow {
     fn from(value: ItemApiResponse) -> Self {
         let item_name = value.name;
-        let item_name_translated = item_name.clone();
+        let item_name_translated = None;
         let item_link = value.url;
         let author_name = value.shop.name;
-        let author_name_translated = author_name.clone();
+        let author_name_translated = None;
         let author_link = value.shop.url;
         let primary_category = value.category.parent.name;
         let secondary_category = value.category.name;
@@ -58,6 +68,7 @@ impl From<ItemApiResponse> for ItemRow {
             })
             .collect();
         let markdown = value.description;
+        let markdown_translated = None;
         ItemRow {
             item_name,
             item_name_translated,
@@ -76,58 +87,61 @@ impl From<ItemApiResponse> for ItemRow {
             image_urls,
             download_links,
             markdown,
+            markdown_translated,
         }
     }
 }
 
-// impl From<ItemMetadata> for ItemRow {
-//     fn from(value: ItemMetadata) -> Self {
-//         let item_name = value.item.name.name.name;
-//         let item_name_translated = value.item.name.name.name_translated;
-//         let item_link = value.item.name.url;
-//
-//         let author_name = value.author.name.name;
-//         let author_name_translated = value.author.name.name_translated;
-//         let author_link = value.author.url;
-//
-//         let primary_category = value.category.category.name.name;
-//         let secondary_category = value.category.subcategory.name.name;
-//
-//         let vrchat = value.badges.vrchat;
-//         let adult = value.badges.adult;
-//
-//         let price = value.price.number;
-//         let currency = value.price.unit;
-//
-//         let hearts = value.hearts;
-//
-//         let image_urls = value.images.iter().map(|image| image.url.clone()).collect();
-//
-//         let downloads_links = value
-//             .downloads
-//             .iter()
-//             .map(|download| download.name.url.clone())
-//             .collect();
-//
-//         let markdown = value.description;
-//
-//         ItemRow {
-//             item_name,
-//             item_name_translated,
-//             item_link,
-//             author_name,
-//             author_name_translated,
-//             author_link,
-//             primary_category,
-//             secondary_category,
-//             vrchat,
-//             adult,
-//             price,
-//             currency,
-//             hearts,
-//             image_urls,
-//             downloads_links,
-//             markdown,
-//         }
-//     }
-// }
+impl ItemRow {
+    pub fn tl(self, cache: Arc<RwLock<Cache>>) -> Result<ItemRow, lingual::Errors> {
+        let author_name_translated =
+            translation::translate(&self.author_name, Lang::En, Some(cache.clone()));
+        let author_name_translated = Some(match author_name_translated {
+            Ok(author_name_translated) => author_name_translated,
+            Err(err) => {
+                if DBG {
+                    dbg!((err, self.clone().author_name));
+                }
+                self.author_name.clone()
+            }
+        });
+        let item_name_translated =
+            translation::translate(&self.item_name, Lang::En, Some(cache.clone()));
+        let item_name_translated = Some(match item_name_translated {
+            Ok(item_name_translated) => item_name_translated,
+            Err(err) => {
+                if DBG {
+                    dbg!((err, self.clone().item_name));
+                }
+                self.item_name.clone()
+            }
+        });
+
+        let markdown_strings = self.markdown.split('\n').collect::<Vec<_>>();
+        let markdown_translated = Some(
+            markdown_strings
+                .par_iter()
+                .map(|markdown_string| {
+                    match translation::translate(markdown_string, Lang::En, Some(cache.clone())) {
+                        Ok(markdown_string) => markdown_string,
+                        Err(err) => {
+                            if DBG {
+                                dbg!((err, markdown_string));
+                            }
+                            markdown_string.to_string()
+                        }
+                    }
+                })
+                .collect::<Vec<_>>()
+                .join("\n"),
+        );
+        print!("\r");
+
+        Ok(ItemRow {
+            author_name_translated,
+            item_name_translated,
+            markdown_translated,
+            ..self
+        })
+    }
+}

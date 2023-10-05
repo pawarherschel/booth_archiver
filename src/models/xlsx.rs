@@ -1,8 +1,19 @@
+use indicatif::style::ProgressTracker;
+use indicatif::ParallelProgressIterator;
+use rayon::prelude::*;
 use rust_xlsxwriter::{ColNum, Url, Workbook, Worksheet, XlsxError};
+use serde::{Deserialize, Serialize};
+use std::fmt::{format, Debug};
+use std::ops::{Deref, DerefMut};
+use std::path::PathBuf;
+use std::sync::{Arc, Mutex, RwLock};
 
 use crate::api_structs::items::ItemApiResponse;
 use crate::models::item_row::ItemRow;
+use crate::write_items_to_file;
+use crate::zaphkiel::cache::Cache;
 use crate::zaphkiel::pub_consts::DBG;
+use crate::zaphkiel::utils::get_pb;
 
 #[derive(Debug, Clone, Copy)]
 enum Headers {
@@ -25,6 +36,7 @@ enum Headers {
     DownloadNumber,
     DownloadsLinks,
     Markdown,
+    MarkdownTranslated,
 }
 
 impl From<Headers> for ColNum {
@@ -49,6 +61,7 @@ impl From<Headers> for ColNum {
             Headers::DownloadNumber => 16,
             Headers::DownloadsLinks => 17,
             Headers::Markdown => 18,
+            Headers::MarkdownTranslated => 19,
         }
     }
 }
@@ -83,6 +96,11 @@ pub fn write_headers(worksheet: &mut Worksheet) -> Result<(), XlsxError> {
     worksheet.write(ROW, Headers::DownloadNumber.into(), "Download Number")?;
     worksheet.write(ROW, Headers::DownloadsLinks.into(), "Downloads Links")?;
     worksheet.write(ROW, Headers::Markdown.into(), "Markdown")?;
+    worksheet.write(
+        ROW,
+        Headers::MarkdownTranslated.into(),
+        "Markdown Translated",
+    )?;
 
     Ok(())
 }
@@ -104,9 +122,14 @@ pub fn write_row(item: &ItemRow, worksheet: &mut Worksheet, row: u32) -> Result<
         currency,
         hearts,
         image_urls,
-        download_links: downloads_links,
+        download_links,
         markdown,
+        markdown_translated,
     } = item.to_owned();
+
+    let item_name_translated = item_name_translated.unwrap_or(item_name.clone());
+    let author_name_translated = author_name_translated.unwrap_or(author_name.clone());
+    let markdown_translated = markdown_translated.unwrap_or(markdown.clone());
 
     worksheet.write(row, Headers::ItemName.into(), item_name)?;
     worksheet.write(
@@ -135,22 +158,22 @@ pub fn write_row(item: &ItemRow, worksheet: &mut Worksheet, row: u32) -> Result<
     worksheet.write(
         row,
         Headers::DownloadNumber.into(),
-        downloads_links.len() as u32,
+        download_links.len() as u32,
     )?;
     worksheet.write(
         row,
         Headers::DownloadsLinks.into(),
-        downloads_links.join("\n"),
+        download_links.join("\n"),
     )?;
     worksheet.write(row, Headers::Markdown.into(), markdown)?;
+    worksheet.write(row, Headers::MarkdownTranslated.into(), markdown_translated)?;
 
     Ok(())
 }
 
-pub fn write_all(worksheet: &mut Worksheet, items: Vec<ItemApiResponse>) {
+pub fn write_all(worksheet: &mut Worksheet, items: Vec<ItemRow>) {
     items
         .iter()
-        .map(|item| item.to_owned().into())
         .enumerate()
         .for_each(|(idx, item)| write_row(&item, worksheet, idx as u32 + 1).unwrap());
 }
