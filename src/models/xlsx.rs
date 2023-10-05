@@ -1,18 +1,11 @@
+use std::fmt::Debug;
+
 use indicatif::style::ProgressTracker;
-use indicatif::ParallelProgressIterator;
 use rayon::prelude::*;
 use rust_xlsxwriter::{ColNum, Url, Workbook, Worksheet, XlsxError};
-use serde::{Deserialize, Serialize};
-use std::fmt::{format, Debug};
-use std::ops::{Deref, DerefMut};
-use std::path::PathBuf;
-use std::sync::{Arc, Mutex, RwLock};
 
-use crate::api_structs::items::ItemApiResponse;
+use crate::debug;
 use crate::models::item_row::ItemRow;
-use crate::zaphkiel::cache::Cache;
-use crate::zaphkiel::utils::get_pb;
-use crate::{debug, write_items_to_file};
 
 #[derive(Debug, Clone, Copy)]
 enum Headers {

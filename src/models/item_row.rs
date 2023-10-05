@@ -1,15 +1,15 @@
 // use crate::models::item_metadata::ItemMetadata;
 
+use std::sync::{Arc, RwLock};
+
+use lingual::Lang;
+use rayon::prelude::*;
+use serde::{Deserialize, Serialize};
+
 use crate::api_structs::items::ItemApiResponse;
 use crate::debug;
 use crate::models::translation;
 use crate::zaphkiel::cache::Cache;
-use crate::zaphkiel::utils::get_pb;
-use indicatif::ParallelProgressIterator;
-use lingual::Lang;
-use rayon::prelude::*;
-use serde::{Deserialize, Serialize};
-use std::sync::{Arc, RwLock};
 
 #[derive(Clone, Default, Debug, Serialize, Deserialize)]
 pub struct ItemRow {

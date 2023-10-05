@@ -1,7 +1,9 @@
-use crate::zaphkiel::cache::Cache;
+use std::sync::{Arc, RwLock};
+
 use lingual::{blocking, Lang};
 use serde::{Deserialize, Serialize};
-use std::sync::{Arc, RwLock};
+
+use crate::zaphkiel::cache::Cache;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum TranslationError {
