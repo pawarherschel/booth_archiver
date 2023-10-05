@@ -1,7 +1,5 @@
 use std::fmt::Debug;
 
-use indicatif::style::ProgressTracker;
-use rayon::prelude::*;
 use rust_xlsxwriter::{ColNum, Url, Workbook, Worksheet, XlsxError};
 
 use crate::debug;

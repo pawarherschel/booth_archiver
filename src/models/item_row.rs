@@ -99,6 +99,7 @@ impl ItemRow {
             translation::translate(&self.author_name, Lang::En, Some(cache.clone()));
         let author_name_translated = Some(match author_name_translated {
             Ok(author_name_translated) => author_name_translated,
+            #[allow(unused_variables)]
             Err(err) => {
                 debug!(err, self.clone().author_name);
                 self.author_name.clone()
@@ -108,6 +109,7 @@ impl ItemRow {
             translation::translate(&self.item_name, Lang::En, Some(cache.clone()));
         let item_name_translated = Some(match item_name_translated {
             Ok(item_name_translated) => item_name_translated,
+            #[allow(unused_variables)]
             Err(err) => {
                 debug!(err, self.clone().item_name);
                 self.item_name.clone()
@@ -121,6 +123,7 @@ impl ItemRow {
                 .map(|markdown_string| {
                     match translation::translate(markdown_string, Lang::En, Some(cache.clone())) {
                         Ok(markdown_string) => markdown_string,
+                        #[allow(unused_variables)]
                         Err(err) => {
                             debug!(err, markdown_string);
                             markdown_string.to_string()
