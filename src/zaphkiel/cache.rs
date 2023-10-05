@@ -6,7 +6,7 @@ use std::sync::Arc;
 use std::sync::RwLock;
 
 use path_absolutize::Absolutize;
-use ron::ser::{to_string_pretty, PrettyConfig};
+use ron::ser::{PrettyConfig, to_string_pretty};
 use serde::{Deserialize, Serialize};
 
 use crate::time_it;
@@ -195,7 +195,7 @@ impl Cache {
         self.path_to_cache.clone()
     }
 
-    pub fn keys(&self) -> impl Iterator<Item = String> + '_ {
+    pub fn keys(&self) -> impl Iterator<Item=String> + '_ {
         self.cache.keys().cloned()
     }
 
