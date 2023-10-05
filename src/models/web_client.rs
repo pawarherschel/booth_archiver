@@ -40,6 +40,7 @@ impl WebScraper {
 impl WebScraper {
     /// Get a single page.
     #[allow(clippy::result_large_err)]
+    #[inline(always)]
     pub fn get_one(
         &self,
         url: String,

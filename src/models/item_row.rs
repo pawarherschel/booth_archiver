@@ -93,6 +93,7 @@ impl From<ItemApiResponse> for ItemRow {
 }
 
 impl ItemRow {
+    #[inline(always)]
     pub fn tl(self, cache: Arc<RwLock<Cache>>) -> Result<ItemRow, lingual::Errors> {
         let author_name_translated =
             translation::translate(&self.author_name, Lang::En, Some(cache.clone()));

@@ -87,6 +87,7 @@ pub fn get_all_wishlist_pages(client: &WebScraper) -> (Vec<String>, bool) {
 /// # Arguments
 ///
 /// * `page` - The page to get the item numbers from.
+#[inline(always)]
 pub fn get_all_item_numbers_on_page(page: &WishListNameItemsResponse) -> Vec<u32> {
     let items = page
         .items

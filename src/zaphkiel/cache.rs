@@ -66,6 +66,7 @@ impl Cache {
 }
 
 impl Cache {
+    #[inline(always)]
     /// Add a key-value pair to the cache
     pub fn add(&mut self, key: String, value: String) {
         self.cache.insert(key, value);
@@ -75,6 +76,7 @@ impl Cache {
         }
     }
 
+    #[inline(always)]
     /// Get a value from the cache
     pub fn get(&self, key: &String) -> Option<String> {
         if let Some(value) = self.cache.get(key) {
@@ -90,11 +92,13 @@ impl Cache {
 }
 
 impl Cache {
+    #[inline(always)]
     /// increments the cache hit counter
     pub fn hit(&self) {
         self.stats.clone().write().unwrap().cache_hits += 1;
     }
 
+    #[inline(always)]
     /// increments the cache miss counter
     pub fn miss(&self) {
         self.stats.clone().write().unwrap().cache_misses += 1;
