@@ -10,10 +10,9 @@ use std::sync::{Arc, Mutex, RwLock};
 
 use crate::api_structs::items::ItemApiResponse;
 use crate::models::item_row::ItemRow;
-use crate::write_items_to_file;
 use crate::zaphkiel::cache::Cache;
-use crate::zaphkiel::pub_consts::DBG;
 use crate::zaphkiel::utils::get_pb;
+use crate::{debug, write_items_to_file};
 
 #[derive(Debug, Clone, Copy)]
 enum Headers {
@@ -187,9 +186,7 @@ pub fn format_cols(worksheet: &mut Worksheet) -> Result<(), XlsxError> {
 pub fn save_book(workbook: &mut Workbook, path: &'static str) {
     match workbook.save(path) {
         Ok(_) => {
-            if DBG {
-                dbg!("saved");
-            }
+            debug!("saved");
         }
         Err(e) => match e {
             XlsxError::IoError(e) => panic!(

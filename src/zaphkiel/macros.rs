@@ -38,9 +38,10 @@ macro_rules! time_it {
 macro_rules! write_items_to_file {
     ($items:expr) => {{
         use crate::time_it;
+        use crate::debug;
         use std::fs::File;
         let var_name_with_spaces = stringify!($items).replace("_", " ");
-        let comment = format!("writing items {var_name_with_spaces} to ron and json files");
+        let comment = format!("writing {var_name_with_spaces} to ron and json files");
         time_it!(at once | comment => {
             let output_path_ron = format!("temp/{}.ron", stringify!($items));
             let output_path_json = format!("temp/{}.json", stringify!($items));
@@ -54,9 +55,23 @@ macro_rules! write_items_to_file {
             file_ron.write_all(items_pretty_ron.as_bytes()).unwrap();
             file_json.write_all(items_pretty_json.as_bytes()).unwrap();
 
-            if DBG {
-                dbg!(format!("temp/{}.ron", stringify!($items)), format!("temp/{}.json", stringify!($items)));
-            }
+            debug!(format!("temp/{}.ron", stringify!($items)), format!("temp/{}.json", stringify!($items)));
         });
     }};
+}
+
+#[macro_export]
+macro_rules! debug {
+    ($val:expr) => {
+        #[cfg(debug_assertions)]
+        {
+            dbg!($val)
+        }
+    };
+    ($($val:expr),+ $(,)?) => {
+        #[cfg(debug_assertions)]
+        {
+            dbg!($($val),+)
+        }
+    };
 }

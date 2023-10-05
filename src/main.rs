@@ -5,6 +5,7 @@ use std::sync::{Arc, Mutex, RwLock};
 use std::time::Instant;
 
 use indicatif::ParallelProgressIterator;
+use lingual::Lang;
 use rayon::prelude::*;
 use rust_xlsxwriter::Workbook;
 
@@ -12,12 +13,12 @@ use booth_archiver::api_structs::items::ItemApiResponse;
 use booth_archiver::api_structs::wish_list_name_items::WishListNameItemsResponse;
 use booth_archiver::models::booth_scrapper::*;
 use booth_archiver::models::item_row::ItemRow;
+use booth_archiver::models::translation;
 use booth_archiver::models::web_client::WebScraper;
 use booth_archiver::models::xlsx::{format_cols, save_book, write_all, write_headers};
 use booth_archiver::zaphkiel::cache::Cache;
-use booth_archiver::zaphkiel::pub_consts::DBG;
 use booth_archiver::zaphkiel::utils::get_pb;
-use booth_archiver::{time_it, write_items_to_file};
+use booth_archiver::{debug, time_it, write_items_to_file};
 
 fn main() {
     let start: Instant = Instant::now();
@@ -28,9 +29,7 @@ fn main() {
 
     let (wishlist_pages, _) = time_it!(at once | "getting wishlist pages" => {
             let (pages, changed) = get_all_wishlist_pages(&client);
-            if DBG {
-                dbg!(pages.len());
-            }
+            debug!(pages.len());
             (pages, changed)
         }
     );
@@ -45,9 +44,7 @@ fn main() {
         })
         .collect::<Vec<_>>()
     });
-    if DBG {
-        dbg!(all_item_numbers.len());
-    }
+    debug!(all_item_numbers.len());
 
     let mut path_to_cache = PathBuf::new();
     path_to_cache.push("cache");
@@ -92,9 +89,7 @@ fn main() {
             .map(|err| err.to_string())
             .collect::<Vec<_>>();
         write_items_to_file!(client_get_one_errs);
-        if DBG {
-            dbg!(client_get_one_errs.len());
-        }
+        debug!(client_get_one_errs.len());
     }
 
     if !serde_json_errs.lock().unwrap().is_empty() {
@@ -106,14 +101,10 @@ fn main() {
             .map(|err| err.to_string())
             .collect::<Vec<_>>();
         write_items_to_file!(serde_json_errs);
-        if DBG {
-            dbg!(serde_json_errs.len());
-        }
+        debug!(serde_json_errs.len());
     }
 
-    if DBG {
-        dbg!(all_items.len());
-    }
+    debug!(all_items.len());
 
     write_items_to_file!(all_items);
 
@@ -217,16 +208,14 @@ fn main() {
     time_it!("dumping cache" => cache.clone().write().unwrap().dump());
 
     let cache_stats = cache.clone().read().unwrap().get_stats();
-    if DBG {
-        dbg!(&cache_stats);
-    }
+    debug!(&cache_stats);
 
     write_items_to_file!(cache_stats);
 
     let cache_misses = cache.clone().read().unwrap().get_misses();
-    if !cache_misses.is_empty() && DBG {
-        dbg!(cache_misses.len());
-        dbg!(cache_misses);
+    if !cache_misses.is_empty() {
+        debug!(cache_misses.len());
+        debug!(cache_misses);
     }
 
     if cache_stats.cache_hits + cache_stats.cache_misses != cache_stats.cache_size as u64 {

@@ -1,9 +1,9 @@
 // use crate::models::item_metadata::ItemMetadata;
 
 use crate::api_structs::items::ItemApiResponse;
+use crate::debug;
 use crate::models::translation;
 use crate::zaphkiel::cache::Cache;
-use crate::zaphkiel::pub_consts::DBG;
 use crate::zaphkiel::utils::get_pb;
 use indicatif::ParallelProgressIterator;
 use lingual::Lang;
@@ -100,9 +100,7 @@ impl ItemRow {
         let author_name_translated = Some(match author_name_translated {
             Ok(author_name_translated) => author_name_translated,
             Err(err) => {
-                if DBG {
-                    dbg!((err, self.clone().author_name));
-                }
+                debug!(err, self.clone().author_name);
                 self.author_name.clone()
             }
         });
@@ -111,9 +109,7 @@ impl ItemRow {
         let item_name_translated = Some(match item_name_translated {
             Ok(item_name_translated) => item_name_translated,
             Err(err) => {
-                if DBG {
-                    dbg!((err, self.clone().item_name));
-                }
+                debug!(err, self.clone().item_name);
                 self.item_name.clone()
             }
         });
@@ -126,9 +122,7 @@ impl ItemRow {
                     match translation::translate(markdown_string, Lang::En, Some(cache.clone())) {
                         Ok(markdown_string) => markdown_string,
                         Err(err) => {
-                            if DBG {
-                                dbg!((err, markdown_string));
-                            }
+                            debug!(err, markdown_string);
                             markdown_string.to_string()
                         }
                     }

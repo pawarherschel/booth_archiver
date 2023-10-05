@@ -9,7 +9,6 @@ pub mod models {
 pub mod zaphkiel {
     pub mod cache;
     pub mod macros;
-    pub mod pub_consts;
     pub mod utils;
 }
 
