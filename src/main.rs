@@ -8,6 +8,7 @@ use lingual::Lang;
 use rayon::prelude::*;
 use rust_xlsxwriter::Workbook;
 
+use booth_archiver::{debug, time_it, write_items_to_file};
 use booth_archiver::api_structs::items::ItemApiResponse;
 use booth_archiver::api_structs::wish_list_name_items::WishListNameItemsResponse;
 use booth_archiver::models::booth_scrapper::*;
@@ -17,7 +18,6 @@ use booth_archiver::models::web_client::WebScraper;
 use booth_archiver::models::xlsx::{format_cols, save_book, write_all, write_headers};
 use booth_archiver::zaphkiel::cache::Cache;
 use booth_archiver::zaphkiel::utils::get_pb;
-use booth_archiver::{debug, time_it, write_items_to_file};
 
 fn main() {
     // let egs = [
