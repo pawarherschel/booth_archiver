@@ -20,7 +20,8 @@ use booth_archiver::zaphkiel::utils::get_pb;
 use booth_archiver::{debug, time_it, write_items_to_file};
 
 fn main() {
-    // let egs = ["Kitty set - velvet#0888  ",
+    // let egs = [
+    //     "Kitty set - velvet#0888  ",
     //     "☆マテリアルカラーの変更はInspectorのMaterialsの所へ好きなカラーのマテリアルをドラッグ&ドロップして",
     //     "薄荷 VRChat向けアバター #Hakka3D",
     //     "💗概要",
