@@ -20,28 +20,28 @@ use booth_archiver::zaphkiel::utils::get_pb;
 use booth_archiver::{debug, time_it, write_items_to_file};
 
 fn main() {
-    let egs = ["Kitty set - velvet#0888  ",
-        "☆マテリアルカラーの変更はInspectorのMaterialsの所へ好きなカラーのマテリアルをドラッグ&ドロップして",
-        "薄荷 VRChat向けアバター #Hakka3D",
-        "💗概要",
-        "本作品はモデリング&他",
-        "FBX/textures package + Unity package",
-        "🌱こちらのワールドで試着できます",
-        "水瀬 VRChat向けアバター #Minase3D",
-        "【NO.37 moon&sun】ver1.00",
-        "Shoes- Bobster#8539 ",
-        "・ウィンドウ下部のBuild & Publish for Windowsボタンを押す"
-    ];
-
-    let tls = egs
-        .iter()
-        .map(|x| translation::translate(x, Lang::En, None, None))
-        .inspect(|x| {
-            debug!(x);
-        })
-        .collect::<Vec<_>>();
-
-    tls[0].as_ref().unwrap();
+    // let egs = ["Kitty set - velvet#0888  ",
+    //     "☆マテリアルカラーの変更はInspectorのMaterialsの所へ好きなカラーのマテリアルをドラッグ&ドロップして",
+    //     "薄荷 VRChat向けアバター #Hakka3D",
+    //     "💗概要",
+    //     "本作品はモデリング&他",
+    //     "FBX/textures package + Unity package",
+    //     "🌱こちらのワールドで試着できます",
+    //     "水瀬 VRChat向けアバター #Minase3D",
+    //     "【NO.37 moon&sun】ver1.00",
+    //     "Shoes- Bobster#8539 ",
+    //     "・ウィンドウ下部のBuild & Publish for Windowsボタンを押す"
+    // ];
+    //
+    // let tls = egs
+    //     .iter()
+    //     .map(|x| translation::translate(x, Lang::En, None, None))
+    //     .inspect(|x| {
+    //         debug!(x);
+    //     })
+    //     .collect::<Vec<_>>();
+    //
+    // tls[0].as_ref().unwrap();
 
     let start: Instant = Instant::now();
 
