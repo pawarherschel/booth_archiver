@@ -1,4 +1,3 @@
-use std::io::Write;
 use std::sync::{Arc, Mutex, RwLock};
 
 use lingual::{blocking, Lang};
@@ -39,37 +38,44 @@ pub fn translate(
     }
     let text = encode(original_text);
     if text.contains("http") {
-        let (left, url, right) = handle_http(text.clone(), to_lang, cache.clone(), ctxs.clone())?;
+        let (left, url, right) = handle_http(text.clone());
         let tled_left = translate(left.clone(), to_lang, cache.clone(), ctxs.clone())?;
         let tled_right = translate(right.clone(), to_lang, cache.clone(), ctxs.clone())?;
         let tled = format!("{}{}{}", tled_left, url, tled_right);
 
-        cache
-            .clone()
-            .unwrap()
-            .write()
-            .unwrap()
-            .add(original_text.to_string(), tled.clone());
-        cache
-            .clone()
-            .unwrap()
-            .write()
-            .unwrap()
-            .add(url.clone(), url.clone());
-        cache
-            .clone()
-            .unwrap()
-            .write()
-            .unwrap()
-            .add(left.clone(), tled_left.clone());
-        cache
-            .clone()
-            .unwrap()
-            .write()
-            .unwrap()
-            .add(right.clone(), tled_right.clone());
+        let ctx = UrlTranslationCTX {
+            original_text: original_text.to_string(),
+            left: tled_left.clone(),
+            url: url.clone(),
+            right: tled_right.clone(),
+            tled: tled.clone(),
+        };
 
-        return Ok(format!("{} {} {}", left, url, right));
+        debug!(&ctx);
+
+        if let Some(ctxs) = ctxs {
+            ctxs.lock().unwrap().push(ctx.clone());
+        }
+        if let Some(cache) = cache {
+            cache
+                .clone()
+                .write()
+                .unwrap()
+                .add(original_text.to_string(), tled.clone());
+            cache.clone().write().unwrap().add(url.clone(), url.clone());
+            cache
+                .clone()
+                .write()
+                .unwrap()
+                .add(left.clone(), tled_left.clone());
+            cache
+                .clone()
+                .write()
+                .unwrap()
+                .add(right.clone(), tled_right.clone());
+        }
+
+        return Ok(tled);
     }
 
     if let Some(cache) = &cache {
@@ -84,9 +90,6 @@ pub fn translate(
             lingual::Errors::JsonParseErr => TranslationError::JsonParseErr,
             lingual::Errors::ParseIntErr => TranslationError::ParseIntErr,
         })?;
-    if translation.target_lang() != to_lang {
-        return Err(TranslationError::TargetLangMismatch);
-    }
     if let Some(cache) = cache {
         cache
             .write()
@@ -110,19 +113,13 @@ pub fn encode(text: impl AsRef<str>) -> String {
 pub fn decode(text: impl AsRef<str>) -> String {
     let text = text.as_ref();
     let text = text.replace("{TAB}", "\t");
-    let text = text.replace("{U3000}", "\u{3000}");
+    let text = text.replace("{U3000}", " ");
 
     text
 }
 
 #[inline(always)]
-pub fn handle_http(
-    text: String,
-    to_lang: Lang,
-    cache: Option<Arc<RwLock<Cache>>>,
-    ctxs: Option<Arc<Mutex<Vec<UrlTranslationCTX>>>>,
-) -> Result<(String, String, String), TranslationError> {
-    let original_text = text.clone();
+pub fn handle_http(text: String) -> (String, String, String) {
     let (left, right) = text.split_once("http").unwrap_or((&text, ""));
     let pos = right
         .find(|c: char| !{
@@ -146,34 +143,7 @@ pub fn handle_http(
     let (url, right) = right.split_at(pos);
     let url = format!("http{}", url);
 
-    let (left, right) = (
-        translate(left, to_lang, cache.clone(), ctxs.clone())?,
-        translate(right, to_lang, cache.clone(), ctxs.clone())?,
-    );
+    let (left, right) = (left.to_string(), right.to_string());
 
-    let tled = format!("{} {} {}", &left, &url, &right);
-
-    let ctx = UrlTranslationCTX {
-        original_text: original_text.to_string(),
-        left: left.clone(),
-        url: url.clone(),
-        right: right.clone(),
-        tled: tled.clone(),
-    };
-
-    debug!(&ctx);
-
-    if let Some(cache) = cache {
-        cache
-            .write()
-            .unwrap()
-            .add(original_text.to_string(), ctx.tled.clone());
-        cache.write().unwrap().add(url.clone(), url.clone());
-    }
-
-    if let Some(ctxs) = ctxs {
-        ctxs.lock().unwrap().push(ctx.clone());
-    }
-
-    return Ok((left, url, right));
+    (left, url, right)
 }
