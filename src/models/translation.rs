@@ -33,15 +33,20 @@ pub fn translate(
     ctxs: Option<Arc<Mutex<Vec<UrlTranslationCTX>>>>,
 ) -> Result<String, TranslationError> {
     let original_text = text.as_ref();
-    if original_text.is_empty() {
+    let text = encode(original_text);
+    if text.is_empty() {
         return Ok("".to_string());
     }
-    let text = encode(original_text);
+    if let Some(cache) = &cache {
+        if let Some(translation) = cache.read().unwrap().get(&text) {
+            return Ok(decode(translation));
+        }
+    }
     if text.contains("http") {
         let (left, url, right) = handle_http(text.clone());
         let tled_left = translate(left.clone(), to_lang, cache.clone(), ctxs.clone())?;
         let tled_right = translate(right.clone(), to_lang, cache.clone(), ctxs.clone())?;
-        let tled = format!("{}{}{}", tled_left, url, tled_right);
+        let tled = format!("{} {} {}", tled_left, url, tled_right);
 
         let ctx = UrlTranslationCTX {
             original_text: original_text.to_string(),
@@ -57,32 +62,27 @@ pub fn translate(
             ctxs.lock().unwrap().push(ctx.clone());
         }
         if let Some(cache) = cache {
-            cache
-                .clone()
-                .write()
-                .unwrap()
-                .add(original_text.to_string(), tled.clone());
-            cache.clone().write().unwrap().add(url.clone(), url.clone());
-            cache
-                .clone()
-                .write()
-                .unwrap()
-                .add(left.clone(), tled_left.clone());
-            cache
-                .clone()
-                .write()
-                .unwrap()
-                .add(right.clone(), tled_right.clone());
+            let cache_lock = cache.clone();
+            let mut cache_lock = cache_lock.write().unwrap();
+
+            cache_lock.add(original_text.to_string(), tled.clone());
+            cache_lock.add(url.clone(), url.clone());
+            cache_lock.add(left.clone(), tled_left.clone());
+            cache_lock.add(right.clone(), tled_right.clone());
+
+            drop(cache_lock);
         }
 
         return Ok(tled);
     }
 
-    if let Some(cache) = &cache {
-        if let Some(translation) = cache.read().unwrap().get(&text) {
-            return Ok(decode(translation));
-        }
+    if text.contains("https://") {
+        panic!(
+            "found `https://` in `{}` which is within `{}` this shouldn't have happened",
+            text, original_text
+        );
     }
+
     let translation =
         blocking::translate(text.clone(), None, Some(to_lang)).map_err(|e| match e {
             lingual::Errors::HttpErr(e) => TranslationError::HttpErr(e),
@@ -103,7 +103,7 @@ pub fn translate(
 pub fn encode(text: impl AsRef<str>) -> String {
     let text = text.as_ref();
     let text = text.replace('\t', "{TAB}");
-    let text = text.replace('\u{3000}', "{U3000}");
+    let text = text.replace('\u{3000}', " ");
     let text = text.trim();
 
     text.into()
@@ -113,7 +113,6 @@ pub fn encode(text: impl AsRef<str>) -> String {
 pub fn decode(text: impl AsRef<str>) -> String {
     let text = text.as_ref();
     let text = text.replace("{TAB}", "\t");
-    let text = text.replace("{U3000}", " ");
 
     text
 }
