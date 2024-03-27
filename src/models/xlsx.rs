@@ -117,9 +117,9 @@ pub fn write_row(item: &ItemRow, worksheet: &mut Worksheet, row: u32) -> Result<
         markdown_translated,
     } = item.to_owned();
 
-    let item_name_translated = item_name_translated.unwrap_or(item_name.clone());
-    let author_name_translated = author_name_translated.unwrap_or(author_name.clone());
-    let markdown_translated = markdown_translated.unwrap_or(markdown.clone());
+    let item_name_translated = item_name_translated.unwrap_or_else(|| item_name.clone());
+    let author_name_translated = author_name_translated.unwrap_or_else(|| author_name.clone());
+    let markdown_translated = markdown_translated.unwrap_or_else(|| markdown.clone());
 
     worksheet.write(row, Headers::ItemName.into(), item_name)?;
     worksheet.write(
@@ -143,12 +143,16 @@ pub fn write_row(item: &ItemRow, worksheet: &mut Worksheet, row: u32) -> Result<
     worksheet.write(row, Headers::Price.into(), price)?;
     worksheet.write(row, Headers::Currency.into(), currency)?;
     worksheet.write(row, Headers::Hearts.into(), hearts)?;
-    worksheet.write(row, Headers::ImagesNumber.into(), image_urls.len() as u32)?;
+    worksheet.write(
+        row,
+        Headers::ImagesNumber.into(),
+        u32::try_from(image_urls.len()).unwrap(),
+    )?;
     worksheet.write(row, Headers::ImagesURLs.into(), image_urls.join("\n"))?;
     worksheet.write(
         row,
         Headers::DownloadNumber.into(),
-        download_links.len() as u32,
+        u32::try_from(download_links.len()).unwrap(),
     )?;
     worksheet.write(
         row,
@@ -161,11 +165,10 @@ pub fn write_row(item: &ItemRow, worksheet: &mut Worksheet, row: u32) -> Result<
     Ok(())
 }
 
-pub fn write_all(worksheet: &mut Worksheet, items: Vec<ItemRow>) {
-    items
-        .iter()
-        .enumerate()
-        .for_each(|(idx, item)| write_row(&item, worksheet, idx as u32 + 1).unwrap());
+pub fn write_all(worksheet: &mut Worksheet, items: &[ItemRow]) {
+    items.iter().enumerate().for_each(|(idx, item)| {
+        write_row(item, worksheet, u32::try_from(idx).unwrap() + 1).unwrap();
+    });
 }
 
 pub fn format_cols(worksheet: &mut Worksheet) -> Result<(), XlsxError> {
@@ -176,17 +179,17 @@ pub fn format_cols(worksheet: &mut Worksheet) -> Result<(), XlsxError> {
 
 pub fn save_book(workbook: &mut Workbook, path: &'static str) {
     match workbook.save(path) {
-        Ok(_) => {
+        Ok(()) => {
             debug!("saved");
         }
         Err(e) => match e {
+            #[allow(unused_variables)]
             XlsxError::IoError(e) => panic!(
-                "io error: {}\n\
-                Did you check if the file is already open in excel?",
-                e
+                "io error: {e}\n\
+                Did you check if the file is already open in excel?"
             ),
             _ => {
-                panic!("error: {}", e);
+                panic!("error: {e}");
             }
         },
     };

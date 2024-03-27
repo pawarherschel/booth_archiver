@@ -3,6 +3,7 @@ use serde_json::Value;
 
 // TODO: when the files are generated, remove the unneeded serde_json::Value slowly and convert it to actual struct
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[allow(clippy::struct_excessive_bools)]
 pub struct ItemApiResponse {
     pub description: String,
     pub factory_description: Option<Value>,
@@ -36,7 +37,8 @@ pub struct ItemApiResponse {
     pub variations: Vec<Variation>,
 }
 
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Default, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[allow(clippy::struct_excessive_bools)]
 pub struct BuyeeVariation {
     pub buyee_html: String,
     pub downloadable: Option<Value>,
@@ -58,7 +60,7 @@ pub struct BuyeeVariation {
     pub type_field: String,
 }
 
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Default, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Category {
     pub id: i64,
     pub name: String,
@@ -66,13 +68,13 @@ pub struct Category {
     pub url: String,
 }
 
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Default, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Parent {
     pub name: String,
     pub url: String,
 }
 
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Default, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Image {
     // never used so far lol
     pub caption: Option<Value>,
@@ -80,13 +82,13 @@ pub struct Image {
     pub resized: String,
 }
 
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Default, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Share {
     pub hashtags: Vec<String>,
     pub text: String,
 }
 
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Default, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Shop {
     pub name: String,
     pub subdomain: String,
@@ -95,26 +97,26 @@ pub struct Shop {
     pub verified: bool,
 }
 
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Default, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Sound {
     pub full_url: String,
     pub short_url: String,
 }
 
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Default, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Tag {
     pub name: String,
     pub url: String,
 }
 
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Default, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct TagBanner {
     pub image_url: Option<String>,
     pub name: String,
     pub url: String,
 }
 
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Default, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct TagCombination {
     pub category: String,
     pub tag: String,
@@ -122,6 +124,7 @@ pub struct TagCombination {
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[allow(clippy::struct_excessive_bools)]
 pub struct Variation {
     pub buyee_html: Option<String>,
     pub downloadable: Option<Downloadable>,
@@ -143,13 +146,13 @@ pub struct Variation {
     pub type_field: String,
 }
 
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Default, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Downloadable {
     pub musics: Option<Vec<Value>>,
     pub no_musics: Vec<NoMusic>,
 }
 
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Default, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct NoMusic {
     pub file_name: String,
     pub file_extension: String,

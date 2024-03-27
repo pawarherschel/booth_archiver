@@ -6,16 +6,17 @@ use serde::{Deserialize, Serialize};
 use crate::debug;
 use crate::zaphkiel::cache::Cache;
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[allow(clippy::module_name_repetitions)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum TranslationError {
     TargetLangMismatch,
     ParseIntErr,
     HttpErr(String),
     UrlParseErr,
-    JsonParseErr,
+    JsonParseErr(String),
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct UrlTranslationCTX {
     original_text: String,
     left: String,
@@ -24,8 +25,8 @@ pub struct UrlTranslationCTX {
     tled: String,
 }
 
-// Todo: refactor this
-#[inline(always)]
+/// Todo: refactor this
+#[inline]
 pub fn translate(
     text: impl AsRef<str>,
     to_lang: Lang,
@@ -35,7 +36,7 @@ pub fn translate(
     let original_text = text.as_ref();
     let text = encode(original_text);
     if text.is_empty() {
-        return Ok("".to_string());
+        return Ok(String::new());
     }
     if let Some(cache) = &cache {
         if let Some(translation) = cache.read().unwrap().get(&text) {
@@ -43,10 +44,10 @@ pub fn translate(
         }
     }
     if text.contains("http") {
-        let (left, url, right) = handle_http(text.clone());
+        let (left, url, right) = handle_http(text.as_str());
         let tled_left = translate(left.clone(), to_lang, cache.clone(), ctxs.clone())?;
         let tled_right = translate(right.clone(), to_lang, cache.clone(), ctxs.clone())?;
-        let tled = format!("{} {} {}", tled_left, url, tled_right);
+        let tled = format!("{tled_left} {url} {tled_right}");
 
         let ctx = UrlTranslationCTX {
             original_text: original_text.to_string(),
@@ -59,16 +60,16 @@ pub fn translate(
         debug!(&ctx);
 
         if let Some(ctxs) = ctxs {
-            ctxs.lock().unwrap().push(ctx.clone());
+            ctxs.lock().unwrap().push(ctx);
         }
         if let Some(cache) = cache {
-            let cache_lock = cache.clone();
+            let cache_lock = cache;
             let mut cache_lock = cache_lock.write().unwrap();
 
             cache_lock.add(original_text.to_string(), tled.clone());
-            cache_lock.add(url.clone(), url.clone());
-            cache_lock.add(left.clone(), tled_left.clone());
-            cache_lock.add(right.clone(), tled_right.clone());
+            cache_lock.add(url.clone(), url);
+            cache_lock.add(left, tled_left);
+            cache_lock.add(right, tled_right);
 
             drop(cache_lock);
         }
@@ -76,19 +77,17 @@ pub fn translate(
         return Ok(tled);
     }
 
-    if text.contains("https://") {
-        panic!(
-            "found `https://` in `{}` which is within `{}` this shouldn't have happened",
-            text, original_text
-        );
-    }
+    assert!(
+        !text.contains("https://"),
+        "found `https://` in `{text}` which is within `{original_text}` this shouldn't have happened"
+    );
 
     let translation =
         blocking::translate(text.clone(), None, Some(to_lang)).map_err(|e| match e {
             lingual::Errors::HttpErr(e) => TranslationError::HttpErr(e),
             lingual::Errors::UrlParseErr => TranslationError::UrlParseErr,
-            lingual::Errors::JsonParseErr => TranslationError::JsonParseErr,
             lingual::Errors::ParseIntErr => TranslationError::ParseIntErr,
+            lingual::Errors::JsonParseErr(e) => TranslationError::JsonParseErr(e),
         })?;
     if let Some(cache) = cache {
         cache
@@ -99,7 +98,7 @@ pub fn translate(
     Ok(decode(translation.text()))
 }
 
-#[inline(always)]
+#[inline]
 pub fn encode(text: impl AsRef<str>) -> String {
     let text = text.as_ref();
     let text = text.replace('\t', "{TAB}");
@@ -109,16 +108,15 @@ pub fn encode(text: impl AsRef<str>) -> String {
     text.into()
 }
 
-#[inline(always)]
+#[inline]
 pub fn decode(text: impl AsRef<str>) -> String {
     let text = text.as_ref();
-    let text = text.replace("{TAB}", "\t");
-
-    text
+    text.replace("{TAB}", "\t")
 }
 
-#[inline(always)]
-pub fn handle_http(text: String) -> (String, String, String) {
+#[inline]
+#[must_use]
+pub fn handle_http(text: &str) -> (String, String, String) {
     let (left, right) = text.split_once("http").unwrap_or((&text, ""));
     let pos = right
         .find(|c: char| !{
@@ -140,7 +138,7 @@ pub fn handle_http(text: String) -> (String, String, String) {
         })
         .unwrap_or(right.len());
     let (url, right) = right.split_at(pos);
-    let url = format!("http{}", url);
+    let url = format!("http{url}");
 
     let (left, right) = (left.to_string(), right.to_string());
 

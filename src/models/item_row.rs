@@ -34,6 +34,7 @@ pub struct ItemRow {
     pub markdown_translated: Option<String>,
 }
 
+#[allow(clippy::fallible_impl_from)]
 impl From<ItemApiResponse> for ItemRow {
     fn from(value: ItemApiResponse) -> Self {
         let item_name = value.name;
@@ -53,7 +54,7 @@ impl From<ItemApiResponse> for ItemRow {
         let price_tuple: (&str, &str) = value.price.split_once(' ').unwrap();
         let price = price_tuple.0.replace(',', "").parse().unwrap();
         let currency = price_tuple.1.to_owned();
-        let hearts = value.wish_lists_count as u32;
+        let hearts = u32::try_from(value.wish_lists_count).unwrap();
         let image_urls = value
             .images
             .iter()
@@ -70,7 +71,7 @@ impl From<ItemApiResponse> for ItemRow {
             .collect();
         let markdown = value.description;
         let markdown_translated = None;
-        ItemRow {
+        Self {
             item_name,
             item_name_translated,
             item_link,
@@ -94,64 +95,57 @@ impl From<ItemApiResponse> for ItemRow {
 }
 
 impl ItemRow {
-    #[inline(always)]
+    #[inline]
     pub fn tl(
         self,
-        cache: Arc<RwLock<Cache>>,
-        ctxs: Option<Arc<Mutex<Vec<UrlTranslationCTX>>>>,
-    ) -> Result<ItemRow, lingual::Errors> {
+        cache: &Arc<RwLock<Cache>>,
+        ctxs: &Option<Arc<Mutex<Vec<UrlTranslationCTX>>>>,
+    ) -> Result<Self, lingual::Errors> {
         let author_name_translated = translation::translate(
             &self.author_name,
             Lang::En,
             Some(cache.clone()),
             ctxs.clone(),
         );
-        let author_name_translated = Some(match author_name_translated {
-            Ok(author_name_translated) => author_name_translated,
-            #[allow(unused_variables)]
-            Err(err) => {
+        let author_name_translated = Some(author_name_translated.unwrap_or_else(
+            |#[allow(unused_variables)] err| {
                 debug!((err, self.clone().author_name));
                 self.author_name.clone()
-            }
-        });
+            },
+        ));
         let item_name_translated =
             translation::translate(&self.item_name, Lang::En, Some(cache.clone()), ctxs.clone());
-        let item_name_translated = Some(match item_name_translated {
-            Ok(item_name_translated) => item_name_translated,
-            #[allow(unused_variables)]
-            Err(err) => {
+        let item_name_translated = Some(item_name_translated.unwrap_or_else(
+            |#[allow(unused_variables)] err| {
                 debug!((err, self.clone().item_name));
                 self.item_name.clone()
-            }
-        });
+            },
+        ));
 
         let markdown_strings = self.markdown.split('\n').collect::<Vec<_>>();
         let markdown_translated = Some(
             markdown_strings
                 .par_iter()
                 .map(|markdown_string| {
-                    match translation::translate(
+                    translation::translate(
                         markdown_string,
                         Lang::En,
                         Some(cache.clone()),
                         ctxs.clone(),
-                    ) {
-                        Ok(markdown_string) => markdown_string,
-                        #[allow(unused_variables)]
-                        Err(err) => {
-                            debug!((err, markdown_string));
-                            markdown_string.to_string()
-                        }
-                    }
+                    )
+                    .unwrap_or_else(|#[allow(unused_variables)] err| {
+                        debug!((err, markdown_string));
+                        (*markdown_string).to_string()
+                    })
                 })
                 .collect::<Vec<_>>()
                 .join("\n"),
         );
         print!("\r");
 
-        Ok(ItemRow {
-            author_name_translated,
+        Ok(Self {
             item_name_translated,
+            author_name_translated,
             markdown_translated,
             ..self
         })

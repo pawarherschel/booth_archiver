@@ -37,8 +37,8 @@ macro_rules! time_it {
 #[macro_export]
 macro_rules! write_items_to_file {
     ($items:expr) => {{
-        use crate::time_it;
-        use crate::debug;
+        use $crate::time_it;
+        use $crate::debug;
         use std::fs::File;
         let var_name_with_spaces = stringify!($items).replace("_", " ");
         let comment = format!("writing {var_name_with_spaces} to ron and json files");

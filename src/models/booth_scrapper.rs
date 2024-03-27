@@ -3,6 +3,8 @@ use std::fs::File;
 use std::path::PathBuf;
 use std::sync::{Arc, RwLock};
 
+use ron::ser::PrettyConfig;
+
 use crate::api_structs::wish_list_name_items::WishListNameItemsResponse;
 use crate::models::web_client::WebScraper;
 use crate::zaphkiel::cache::Cache;
@@ -24,19 +26,20 @@ fn get_last_page_number(client: &WebScraper) -> u32 {
             )
         });
     let last_page = document.pagination.total_pages;
-    let last_page = last_page as u32;
+    let last_page = u32::try_from(last_page).unwrap();
 
     ron::ser::to_writer_pretty(
         File::create("cache/last_page.ron").unwrap(),
         &last_page,
-        Default::default(),
+        PrettyConfig::default(),
     )
-        .unwrap();
+    .unwrap();
 
     last_page
 }
 
 /// Get all the wishlist pages.
+#[must_use]
 pub fn get_all_wishlist_pages(client: &WebScraper) -> (Vec<String>, bool) {
     let prev_last_page = if fs::metadata("cache/last_page.ron").is_ok() {
         ron::de::from_reader(File::open("cache/last_page.ron").unwrap()).unwrap()
@@ -56,7 +59,7 @@ pub fn get_all_wishlist_pages(client: &WebScraper) -> (Vec<String>, bool) {
 
     if last_page_changed {
         println!("last page changed, clearing cache");
-        cache.clone().write().unwrap().clear();
+        cache.write().unwrap().clear();
     }
 
     let urls = (1..=last_page)
@@ -75,7 +78,7 @@ pub fn get_all_wishlist_pages(client: &WebScraper) -> (Vec<String>, bool) {
         .cloned()
         .collect();
 
-    cache.clone().read().unwrap().dump();
+    cache.read().unwrap().dump();
 
     assert_eq!(Arc::strong_count(&cache), 1);
 
@@ -87,12 +90,13 @@ pub fn get_all_wishlist_pages(client: &WebScraper) -> (Vec<String>, bool) {
 /// # Arguments
 ///
 /// * `page` - The page to get the item numbers from.
-#[inline(always)]
+#[inline]
+#[must_use]
 pub fn get_all_item_numbers_on_page(page: &WishListNameItemsResponse) -> Vec<u32> {
     let items = page
         .items
         .iter()
-        .map(|item| item.tracking_data.product_id as u32)
+        .map(|item| u32::try_from(item.tracking_data.product_id).unwrap())
         .collect::<Vec<_>>();
 
     items

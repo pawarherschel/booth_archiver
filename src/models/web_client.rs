@@ -21,6 +21,7 @@ impl WebScraper {
     ///
     /// * `cookie` - The cookie to use for the requests.
     /// * `adult` - Whether to use the adult cookie or not.
+    #[must_use]
     pub fn new(cookie: String, adult: bool) -> Self {
         let user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) \
             AppleWebKit/537.36 (KHTML, like Gecko) \
@@ -29,9 +30,9 @@ impl WebScraper {
 
         let client = AgentBuilder::new().user_agent(user_agent).build();
 
-        let session_cookie = format!("_plaza_session_nktz7u={}; Secure", cookie);
+        let session_cookie = format!("_plaza_session_nktz7u={cookie}; Secure");
         let adult_cookie = format!("adult={}; Secure", if adult { "t" } else { "f" });
-        let cookie = format!("{}; {}", session_cookie, adult_cookie);
+        let cookie = format!("{session_cookie}; {adult_cookie}");
 
         Self { client, cookie }
     }
@@ -40,7 +41,7 @@ impl WebScraper {
 impl WebScraper {
     /// Get a single page.
     #[allow(clippy::result_large_err)]
-    #[inline(always)]
+    #[inline]
     pub fn get_one(
         &self,
         url: String,

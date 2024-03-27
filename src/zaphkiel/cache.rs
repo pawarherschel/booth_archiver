@@ -6,13 +6,13 @@ use std::sync::Arc;
 use std::sync::RwLock;
 
 use path_absolutize::Absolutize;
-use ron::ser::{PrettyConfig, to_string_pretty};
+use ron::ser::{to_string_pretty, PrettyConfig};
 use serde::{Deserialize, Serialize};
 
 use crate::time_it;
 
 /// generic cache that stores a key-value pair
-/// It is safe to use this cache from multiple threads if you wrap it in an Arc<RwLock<_>>
+/// It is safe to use this cache from multiple threads if you wrap it in an Arc<`RwLock`<_>>
 #[derive(Debug, Default, Clone)]
 pub struct Cache {
     cache: HashMap<String, String>,
@@ -24,6 +24,7 @@ pub struct Cache {
 }
 
 /// Stats for the cache
+#[allow(clippy::module_name_repetitions)]
 #[derive(Debug, Default, Serialize, Deserialize, PartialEq, Eq, Clone)]
 pub struct CacheStats {
     pub cache_hits: u64,
@@ -58,15 +59,15 @@ impl Cache {
         };
 
         Self {
-            path_to_cache,
             cache,
-            ..Cache::default()
+            path_to_cache,
+            ..Self::default()
         }
     }
 }
 
 impl Cache {
-    #[inline(always)]
+    #[inline]
     /// Add a key-value pair to the cache
     pub fn add(&mut self, key: String, value: String) {
         self.cache.insert(key, value);
@@ -76,29 +77,33 @@ impl Cache {
         }
     }
 
-    #[inline(always)]
+    #[inline]
     /// Get a value from the cache
+    #[must_use]
     pub fn get(&self, key: &String) -> Option<String> {
-        if let Some(value) = self.cache.get(key) {
-            self.hit();
-            self.hits.write().unwrap().push(key.clone());
-            Some(value.clone())
-        } else {
-            self.miss();
-            self.misses.write().unwrap().push(key.clone());
-            None
-        }
+        self.cache.get(key).map_or_else(
+            || {
+                self.miss();
+                self.misses.write().unwrap().push(key.clone());
+                None
+            },
+            |value| {
+                self.hit();
+                self.hits.write().unwrap().push(key.clone());
+                Some(value.clone())
+            },
+        )
     }
 }
 
 impl Cache {
-    #[inline(always)]
+    #[inline]
     /// increments the cache hit counter
     pub fn hit(&self) {
         self.stats.clone().write().unwrap().cache_hits += 1;
     }
 
-    #[inline(always)]
+    #[inline]
     /// increments the cache miss counter
     pub fn miss(&self) {
         self.stats.clone().write().unwrap().cache_misses += 1;
@@ -108,22 +113,22 @@ impl Cache {
 impl Cache {
     /// pump the cache from the cache file
     pub fn pump(&mut self) {
-        self.pump_from_file(self.path_to_cache.clone());
+        self.pump_from_file(&self.path_to_cache.clone());
     }
 
     /// dump the cache to the cache file
     pub fn dump(&self) {
-        self.dump_to_file(self.path_to_cache.clone());
+        self.dump_to_file(&self.path_to_cache);
     }
 
     /// pump the cache from the given cache file
-    pub fn pump_from_file(&mut self, cache_location: PathBuf) {
+    pub fn pump_from_file(&mut self, cache_location: &PathBuf) {
         let abs_path = cache_location
             .absolutize()
             .expect("failed to absolutize path");
         let abs_path = abs_path.to_str().expect("failed to convert path to str");
         let cache = time_it!("reading from cache file" =>
-        fs::read_to_string(&cache_location)
+        fs::read_to_string(cache_location)
             .unwrap_or_else(|_| panic!("{} not found", abs_path))
         );
 
@@ -138,7 +143,7 @@ impl Cache {
     }
 
     /// dump the cache to the given cache file
-    pub fn dump_to_file(&self, cache_location: PathBuf) {
+    pub fn dump_to_file(&self, cache_location: &PathBuf) {
         if self.get_stats().cache_misses == 0 {
             return;
         }
@@ -170,37 +175,46 @@ impl Cache {
 
 impl Cache {
     /// get the stats of the cache
+    #[must_use]
     pub fn get_stats(&self) -> CacheStats {
         self.stats.write().unwrap().cache_size = self.cache.len();
         self.stats.clone().read().unwrap().clone()
     }
 
     /// get the keys which caused misses
+    #[must_use]
     pub fn get_misses(&self) -> Vec<String> {
         self.misses.clone().read().unwrap().clone()
     }
 
     /// get the keys which caused hits
+    #[must_use]
     pub fn get_hits(&self) -> Vec<String> {
         self.hits.clone().read().unwrap().clone()
     }
 
     /// get the number of times the cache was accessed
-    pub fn get_accesses(&self) -> u64 {
+    #[must_use]
+    pub const fn get_accesses(&self) -> u64 {
         self.accesses
     }
 
     /// get the path to the cache file
+    #[must_use]
     pub fn get_path_to_cache(&self) -> PathBuf {
         self.path_to_cache.clone()
     }
 
-    pub fn keys(&self) -> impl Iterator<Item=String> + '_ {
+    pub fn keys(&self) -> impl Iterator<Item = String> + '_ {
         self.cache.keys().cloned()
     }
 
     /// clear the cache
     pub fn clear(&mut self) {
         self.cache.clear();
+    }
+
+    pub fn capacity(&self) -> usize {
+        self.cache.capacity()
     }
 }

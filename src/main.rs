@@ -8,7 +8,6 @@ use lingual::Lang;
 use rayon::prelude::*;
 use rust_xlsxwriter::Workbook;
 
-use booth_archiver::{debug, time_it, write_items_to_file};
 use booth_archiver::api_structs::items::ItemApiResponse;
 use booth_archiver::api_structs::wish_list_name_items::WishListNameItemsResponse;
 use booth_archiver::models::booth_scrapper::*;
@@ -18,7 +17,10 @@ use booth_archiver::models::web_client::WebScraper;
 use booth_archiver::models::xlsx::{format_cols, save_book, write_all, write_headers};
 use booth_archiver::zaphkiel::cache::Cache;
 use booth_archiver::zaphkiel::utils::get_pb;
+use booth_archiver::{debug, time_it, write_items_to_file};
 
+#[allow(clippy::too_many_lines)]
+// this is the main function and i do everything in here
 fn main() {
     // let egs = [
     //     "Kitty set - velvet#0888  ",
@@ -44,7 +46,7 @@ fn main() {
     //
     // tls[0].as_ref().unwrap();
 
-    let start: Instant = Instant::now();
+    let start = Instant::now();
 
     let cookie = fs::read_to_string("cookie.txt").unwrap();
 
@@ -184,20 +186,20 @@ fn main() {
     });
 
     if !translation_errors.lock().unwrap().is_empty() {
-        let translation_errors = translation_errors.clone();
-        let translation_errors = translation_errors.lock();
-        let translation_errors = translation_errors.unwrap();
         let translation_errors = translation_errors
-            .iter()
-            .map(|(err, string)| (err, string.to_string()))
+            .lock()
+            .unwrap()
+            .clone()
+            .into_iter()
+            .map(|(err, string)| (err, string))
             .collect::<Vec<_>>();
         write_items_to_file!(translation_errors);
         debug!(translation_errors.len());
     }
 
-    time_it!("dumping translation cache" => translation_cache.clone().write().unwrap().dump());
+    time_it!("dumping translation cache" => translation_cache.write().unwrap().dump());
 
-    let initial_translation_cache_stats = translation_cache.clone().read().unwrap().get_stats();
+    let initial_translation_cache_stats = translation_cache.read().unwrap().get_stats();
 
     write_items_to_file!(initial_translation_cache_stats);
 
@@ -206,15 +208,16 @@ fn main() {
         item_rows
             .into_par_iter()
             .progress_with(get_pb(len as u64, "translating Item Rows"))
-            .map(|item_row| item_row.tl(translation_cache.clone(), ctxs.clone()).unwrap())
+            .map(|item_row| item_row.tl(&translation_cache, &ctxs).unwrap())
             .collect::<Vec<_>>()
     });
 
-    time_it!("dumping translation cache" => translation_cache.clone().write().unwrap().dump());
+    time_it!("dumping translation cache" => translation_cache.write().unwrap().dump());
 
-    let final_translation_cache_stats = translation_cache.clone().read().unwrap().get_stats();
+    let final_translation_cache_stats = translation_cache.read().unwrap().get_stats();
 
     write_items_to_file!(final_translation_cache_stats);
+
 
     time_it!(at once | "writing items to xlsx" => {
         let mut workbook = Workbook::new();
@@ -222,21 +225,21 @@ fn main() {
 
         write_headers(worksheet).unwrap();
 
-        write_all(worksheet, translated_item_rows);
+        write_all(worksheet, translated_item_rows.as_slice());
 
         format_cols(worksheet).unwrap();
 
         save_book(&mut workbook, "temp/book.xlsx");
     });
 
-    time_it!("dumping cache" => cache.clone().write().unwrap().dump());
+    time_it!("dumping cache" => cache.write().unwrap().dump());
 
-    let cache_stats = cache.clone().read().unwrap().get_stats();
+    let cache_stats = cache.read().unwrap().get_stats();
     debug!(&cache_stats);
 
     write_items_to_file!(cache_stats);
 
-    let cache_misses = cache.clone().read().unwrap().get_misses();
+    let cache_misses = cache.read().unwrap().get_misses();
     if !cache_misses.is_empty() {
         debug!(cache_misses.len());
         debug!(cache_misses);
@@ -250,21 +253,23 @@ fn main() {
             cache_stats.cache_hits, cache_stats.cache_misses, cache_stats.cache_size,
         );
 
-        let misses = cache.clone().read().unwrap().get_misses();
-        let hits = cache.clone().read().unwrap().get_hits();
-        let all = cache.clone().read().unwrap().keys().collect::<Vec<_>>();
+        let misses = cache.read().unwrap().get_misses();
+        let hits = cache.read().unwrap().get_hits();
+        let all = cache.read().unwrap().keys().collect::<Vec<_>>();
 
         let missing = all
             .iter()
             .filter(|key| !misses.contains(key) && !hits.contains(key))
             .collect::<Vec<_>>();
 
-        println!("missing: {:#?}", missing);
+        println!("missing: {missing:#?}");
         write_items_to_file!(missing);
     }
 
     assert_eq!(Arc::strong_count(&cache), 1);
 
+    #[allow(clippy::unnecessary_literal_unwrap)]
+    // we need to wrap the ctxs in option
     let translation_ctxs = ctxs.unwrap().lock().unwrap().clone();
 
     write_items_to_file!(translation_ctxs);
