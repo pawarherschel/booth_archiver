@@ -1,6 +1,13 @@
+mod cache;
+
+use crate::cache::{Cache, KV};
+use reqwest::get;
+use std::borrow::Cow;
+use std::path::{Path, PathBuf};
 use tracing::info;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
+use tracing_tree::HierarchicalLayer;
 
 #[tokio::main]
 #[tracing::instrument(level = "trace")]
@@ -19,13 +26,13 @@ async fn main() {
         // Display the thread ID an event was recorded on
         .with_thread_ids(true);
 
-    // let timing_layer =
-    //     Builder::default().layer(|| Histogram::new_with_max(1_000_000, 2).unwrap_or_log());
-
-    tracing_subscriber::registry()
+    tracing_subscriber::Registry::default()
         .with(fmt_layer)
-        // .with(timing_layer)
         .init();
 
-    info!("Hello, World!");
+    let mut kv = Cache::new(&"cache/kv");
+
+    kv.insert("key", "value");
+
+    kv.persist();
 }

@@ -12,12 +12,6 @@ rustflags = [
     # Nightly
     #    "-Zshare-generics=y",
     "-Zthreads=0",
-    "--cfg", "tokio_unstable",
-    "--cfg", "tracing_unstable",
-]
-
-[build]
-rustflags = [
-    "--cfg", "tokio_unstable",
-    "--cfg", "tracing_unstable",
+    #    "--cfg", "tokio_unstable",
+    #    "--cfg", "tracing_unstable",
 ]
