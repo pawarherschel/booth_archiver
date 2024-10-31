@@ -1,16 +1,8 @@
 // use crate::models::item_metadata::ItemMetadata;
 
-use std::sync::{Arc, Mutex, RwLock};
-
-use lingual::Lang;
-use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 
 use crate::api_structs::items::ItemApiResponse;
-use crate::debug;
-use crate::models::translation;
-use crate::models::translation::UrlTranslationCTX;
-use crate::zaphkiel::cache::Cache;
 
 #[derive(Clone, Default, Debug, Serialize, Deserialize)]
 pub struct ItemRow {
@@ -91,63 +83,5 @@ impl From<ItemApiResponse> for ItemRow {
             markdown,
             markdown_translated,
         }
-    }
-}
-
-impl ItemRow {
-    #[inline]
-    pub fn tl(
-        self,
-        cache: &Arc<RwLock<Cache>>,
-        ctxs: &Option<Arc<Mutex<Vec<UrlTranslationCTX>>>>,
-    ) -> Result<Self, lingual::Errors> {
-        let author_name_translated = translation::translate(
-            &self.author_name,
-            Lang::En,
-            Some(cache.clone()),
-            ctxs.clone(),
-        );
-        let author_name_translated = Some(author_name_translated.unwrap_or_else(
-            |#[allow(unused_variables)] err| {
-                debug!((err, self.clone().author_name));
-                self.author_name.clone()
-            },
-        ));
-        let item_name_translated =
-            translation::translate(&self.item_name, Lang::En, Some(cache.clone()), ctxs.clone());
-        let item_name_translated = Some(item_name_translated.unwrap_or_else(
-            |#[allow(unused_variables)] err| {
-                debug!((err, self.clone().item_name));
-                self.item_name.clone()
-            },
-        ));
-
-        let markdown_strings = self.markdown.split('\n').collect::<Vec<_>>();
-        let markdown_translated = Some(
-            markdown_strings
-                .par_iter()
-                .map(|markdown_string| {
-                    translation::translate(
-                        markdown_string,
-                        Lang::En,
-                        Some(cache.clone()),
-                        ctxs.clone(),
-                    )
-                    .unwrap_or_else(|#[allow(unused_variables)] err| {
-                        debug!((err, markdown_string));
-                        (*markdown_string).to_string()
-                    })
-                })
-                .collect::<Vec<_>>()
-                .join("\n"),
-        );
-        print!("\r");
-
-        Ok(Self {
-            item_name_translated,
-            author_name_translated,
-            markdown_translated,
-            ..self
-        })
     }
 }

@@ -4,15 +4,15 @@ use std::sync::{Arc, Mutex, RwLock};
 use std::time::Instant;
 
 use indicatif::ParallelProgressIterator;
-use lingual::Lang;
 use rayon::prelude::*;
 use rust_xlsxwriter::Workbook;
 
 use booth_archiver::api_structs::items::ItemApiResponse;
 use booth_archiver::api_structs::wish_list_name_items::WishListNameItemsResponse;
-use booth_archiver::models::booth_scrapper::*;
+use booth_archiver::models::booth_scrapper::{
+    get_all_item_numbers_on_page, get_all_wishlist_pages,
+};
 use booth_archiver::models::item_row::ItemRow;
-use booth_archiver::models::translation;
 use booth_archiver::models::web_client::WebScraper;
 use booth_archiver::models::xlsx::{format_cols, save_book, write_all, write_headers};
 use booth_archiver::zaphkiel::cache::Cache;
@@ -22,30 +22,6 @@ use booth_archiver::{debug, time_it, write_items_to_file};
 #[allow(clippy::too_many_lines)]
 // this is the main function and i do everything in here
 fn main() {
-    // let egs = [
-    //     "Kitty set - velvet#0888  ",
-    //     "☆マテリアルカラーの変更はInspectorのMaterialsの所へ好きなカラーのマテリアルをドラッグ&ドロップして",
-    //     "薄荷 VRChat向けアバター #Hakka3D",
-    //     "💗概要",
-    //     "本作品はモデリング&他",
-    //     "FBX/textures package + Unity package",
-    //     "🌱こちらのワールドで試着できます",
-    //     "水瀬 VRChat向けアバター #Minase3D",
-    //     "【NO.37 moon&sun】ver1.00",
-    //     "Shoes- Bobster#8539 ",
-    //     "・ウィンドウ下部のBuild & Publish for Windowsボタンを押す"
-    // ];
-    //
-    // let tls = egs
-    //     .iter()
-    //     .map(|x| translation::translate(x, Lang::En, None, None))
-    //     .inspect(|x| {
-    //         debug!(x);
-    //     })
-    //     .collect::<Vec<_>>();
-    //
-    // tls[0].as_ref().unwrap();
-
     let start = Instant::now();
 
     let cookie = fs::read_to_string("cookie.txt").unwrap();
@@ -163,54 +139,11 @@ fn main() {
             .collect::<Vec<_>>()
     });
 
-    let translation_errors = Arc::new(Mutex::new(vec![]));
-
-    let ctxs = Some(Arc::new(Mutex::new(vec![])));
-
-    time_it!(at once | "caching translation for strings" => {
-        strings
-            .par_iter()
-            .progress_with(get_pb(strings.len() as u64, "translating strings"))
-            .for_each(|string| {
-                match translation::translate(string, Lang::En, Some(translation_cache.clone()), ctxs.clone()) {
-                    Ok(_) => {}
-                    Err(err) => {
-                        translation_errors
-                            .clone()
-                            .lock()
-                            .unwrap()
-                            .push((err, string.clone()));
-                    }
-                }
-            });
-    });
-
-    if !translation_errors.lock().unwrap().is_empty() {
-        let translation_errors = translation_errors
-            .lock()
-            .unwrap()
-            .clone()
-            .into_iter()
-            .map(|(err, string)| (err, string))
-            .collect::<Vec<_>>();
-        write_items_to_file!(translation_errors);
-        debug!(translation_errors.len());
-    }
-
     time_it!("dumping translation cache" => translation_cache.write().unwrap().dump());
 
     let initial_translation_cache_stats = translation_cache.read().unwrap().get_stats();
 
     write_items_to_file!(initial_translation_cache_stats);
-
-    let translated_item_rows = time_it!(at once | "translating item rows" => {
-        let len = item_rows.len();
-        item_rows
-            .into_par_iter()
-            .progress_with(get_pb(len as u64, "translating Item Rows"))
-            .map(|item_row| item_row.tl(&translation_cache, &ctxs).unwrap())
-            .collect::<Vec<_>>()
-    });
 
     time_it!("dumping translation cache" => translation_cache.write().unwrap().dump());
 
@@ -218,14 +151,13 @@ fn main() {
 
     write_items_to_file!(final_translation_cache_stats);
 
-
     time_it!(at once | "writing items to xlsx" => {
         let mut workbook = Workbook::new();
         let worksheet = workbook.add_worksheet();
 
         write_headers(worksheet).unwrap();
 
-        write_all(worksheet, translated_item_rows.as_slice());
+        write_all(worksheet, item_rows.as_slice());
 
         format_cols(worksheet).unwrap();
 
@@ -267,12 +199,6 @@ fn main() {
     }
 
     assert_eq!(Arc::strong_count(&cache), 1);
-
-    #[allow(clippy::unnecessary_literal_unwrap)]
-    // we need to wrap the ctxs in option
-    let translation_ctxs = ctxs.unwrap().lock().unwrap().clone();
-
-    write_items_to_file!(translation_ctxs);
 
     println!("whole program => {:#?}", start.elapsed());
 }

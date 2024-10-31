@@ -9,7 +9,6 @@ edition = "2021"
 debug = true
 [dependencies]
 indicatif = { version = "0.17.5", features = ["improved_unicode", "rayon"] }
-lingual = { git = "https://github.com/Deepp0925/lingual.git", features = ["blocking"] }
 path-absolutize = "3.1.0"
 rayon = "1.7.0"
 ron = "0.8.0"
