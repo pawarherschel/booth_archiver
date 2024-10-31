@@ -1,5 +1,5 @@
-use crate::cache;
 use ron::ser::PrettyConfig;
+use serde::de::DeserializeOwned;
 use serde::ser::SerializeMap;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::borrow::Cow;
@@ -13,35 +13,38 @@ use tracing::{info, instrument};
 use tracing_unwrap::ResultExt;
 
 #[derive(Debug, Clone)]
-pub struct Cache<'cache> {
-    inner: BTreeMap<Cow<'cache, str>, Cow<'cache, str>>,
+pub struct Cache<'cache, Inner>
+where
+    Inner: KVInner,
+{
+    inner: Inner,
     path: Cow<'cache, Path>,
 }
 
-impl Serialize for Cache<'_> {
+impl<'cache, Inner: KVInner + serde::Serialize> Serialize for Cache<'cache, Inner> {
     #[tracing::instrument(level = "trace", skip(self, serializer))]
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
-        let mut map = serializer.serialize_map(Some(self.len()))?;
-        for (k, v) in &self.inner {
-            map.serialize_entry(k, v)?;
-        }
-        map.end()
+        self.inner.serialize(serializer)
     }
 }
 
-impl Default for Cache<'_> {
+impl<Inner> Default for Cache<'_, Inner>
+where
+    Inner: KVInner + Default + Debug,
+{
     #[tracing::instrument(level = "trace", skip(), ret)]
     fn default() -> Self {
         Self {
-            inner: BTreeMap::default(),
             path: Cow::from(Path::new("cache/cache")),
+            ..Default::default()
         }
     }
 }
 
+// TODO: make K, and V
 impl<'cache> KVInner for BTreeMap<Cow<'cache, str>, Cow<'cache, str>> {
     type Key = Cow<'cache, str>;
     type Value = Cow<'cache, str>;
@@ -65,8 +68,11 @@ impl<'cache> KVInner for BTreeMap<Cow<'cache, str>, Cow<'cache, str>> {
     }
 }
 
-impl<'cache> Deref for Cache<'cache> {
-    type Target = BTreeMap<Cow<'cache, str>, Cow<'cache, str>>;
+impl<'cache, Inner> Deref for Cache<'cache, Inner>
+where
+    Inner: KVInner,
+{
+    type Target = Inner;
 
     #[tracing::instrument(level = "trace", skip(self))]
     fn deref(&self) -> &Self::Target {
@@ -74,15 +80,21 @@ impl<'cache> Deref for Cache<'cache> {
     }
 }
 
-impl DerefMut for Cache<'_> {
+impl<Inner> DerefMut for Cache<'_, Inner>
+where
+    Inner: KVInner,
+{
     #[tracing::instrument(level = "trace", skip(self))]
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.inner
     }
 }
 
-impl<'cache> KV for Cache<'cache> {
-    type Inner = BTreeMap<Cow<'cache, str>, Cow<'cache, str>>;
+impl<'cache, Inner> KV for Cache<'cache, Inner>
+where
+    Inner: KVInner,
+{
+    type Inner = Inner;
 
     #[tracing::instrument(level = "trace", skip(self), ret)]
     fn get_path(&self) -> impl AsRef<Path> {
@@ -90,25 +102,31 @@ impl<'cache> KV for Cache<'cache> {
     }
 }
 
-impl<'cache> Cache<'cache> {
+impl<'cache, Inner> Cache<'cache, Inner>
+where
+    Inner: KVInner,
+{
     #[tracing::instrument(level = "trace")]
     pub fn new<P>(path: &'cache P) -> Self
     where
         P: Debug + AsRef<std::ffi::OsStr>,
+        Inner: Default + DeserializeOwned,
     {
         let path = Path::new(path);
 
         let path: Cow<'cache, Path> = path.into();
 
         let ron_path = format!("{}.ron", path.display());
+        let cache = fs::read_to_string(&ron_path).unwrap_or_default();
+
+        let s_cache = cache.as_str();
 
         let inner = if fs::metadata(&ron_path).is_ok() {
             trace!("loading cache from path: {}", ron_path);
-            let cache = fs::read_to_string(&ron_path).unwrap_or_log();
-            ron::from_str(&cache).unwrap_or_log()
+            ron::from_str(s_cache).unwrap_or_log()
         } else {
             trace!("created new cache at path: {}", ron_path);
-            BTreeMap::default()
+            Default::default()
         };
 
         Cache { inner, path }

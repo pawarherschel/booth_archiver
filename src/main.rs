@@ -1,13 +1,15 @@
+mod booth_scrapper;
 mod cache;
 
 use crate::cache::{Cache, KV};
 use reqwest::get;
 use std::borrow::Cow;
+use std::collections::BTreeMap;
+use std::fs;
 use std::path::{Path, PathBuf};
-use tracing::info;
+use tracing::{info, trace};
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
-use tracing_tree::HierarchicalLayer;
 
 #[tokio::main]
 #[tracing::instrument(level = "trace")]
@@ -30,7 +32,11 @@ async fn main() {
         .with(fmt_layer)
         .init();
 
-    let mut kv = Cache::new(&"cache/kv");
+    if fs::metadata("cache").is_err() {
+        trace!("creating directory cache since it doesnt exist");
+    }
+
+    let mut kv: Cache<'_, BTreeMap<Cow<str>, Cow<str>>> = Cache::new(&"cache/kv");
 
     kv.insert("key", "value");
 
